@@ -1,8 +1,3 @@
-import 'package:json_annotation/json_annotation.dart';
-
-part 'password_model.g.dart';
-
-@JsonSerializable()
 class PasswordModel {
   final String id;
   final String userId;
@@ -30,8 +25,35 @@ class PasswordModel {
     required this.updatedAt,
   });
 
-  factory PasswordModel.fromJson(Map<String, dynamic> json) =>
-      _$PasswordModelFromJson(json);
+  factory PasswordModel.fromJson(Map<String, dynamic> json) {
+    return PasswordModel(
+      id: json['id'] as String,
+      userId: json['user_id'] as String,
+      title: json['title'] as String,
+      username: json['username'] as String?,
+      passwordEncrypted: json['password_encrypted'] as String,
+      url: json['url'] as String?,
+      notes: json['notes'] as String?,
+      category: json['category'] as String? ?? 'General',
+      isFavorite: json['is_favorite'] as bool? ?? false,
+      createdAt: DateTime.parse(json['created_at'] as String),
+      updatedAt: DateTime.parse(json['updated_at'] as String),
+    );
+  }
 
-  Map<String, dynamic> toJson() => _$PasswordModelToJson(this);
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'user_id': userId,
+      'title': title,
+      'username': username,
+      'password_encrypted': passwordEncrypted,
+      'url': url,
+      'notes': notes,
+      'category': category,
+      'is_favorite': isFavorite,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
+    };
+  }
 }

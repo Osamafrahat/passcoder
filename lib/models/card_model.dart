@@ -1,8 +1,3 @@
-import 'package:json_annotation/json_annotation.dart';
-
-part 'card_model.g.dart';
-
-@JsonSerializable()
 class CardModel {
   final String id;
   final String userId;
@@ -28,8 +23,33 @@ class CardModel {
     required this.updatedAt,
   });
 
-  factory CardModel.fromJson(Map<String, dynamic> json) =>
-      _$CardModelFromJson(json);
+  factory CardModel.fromJson(Map<String, dynamic> json) {
+    return CardModel(
+      id: json['id'] as String,
+      userId: json['user_id'] as String,
+      cardholderName: json['cardholder_name'] as String,
+      cardNumberEncrypted: json['card_number_encrypted'] as String,
+      expiryDateEncrypted: json['expiry_date_encrypted'] as String,
+      cvvEncrypted: json['cvv_encrypted'] as String,
+      cardType: json['card_type'] as String?,
+      isFavorite: json['is_favorite'] as bool? ?? false,
+      createdAt: DateTime.parse(json['created_at'] as String),
+      updatedAt: DateTime.parse(json['updated_at'] as String),
+    );
+  }
 
-  Map<String, dynamic> toJson() => _$CardModelToJson(this);
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'user_id': userId,
+      'cardholder_name': cardholderName,
+      'card_number_encrypted': cardNumberEncrypted,
+      'expiry_date_encrypted': expiryDateEncrypted,
+      'cvv_encrypted': cvvEncrypted,
+      'card_type': cardType,
+      'is_favorite': isFavorite,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
+    };
+  }
 }
