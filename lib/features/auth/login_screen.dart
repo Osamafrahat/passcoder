@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/auth/auth_service.dart';
@@ -57,6 +58,17 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _biometricLogin() async {
     final authService = context.read<AuthService>();
 
+    if (kIsWeb) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Biometric login is not available on web. Please use email/password.'),
+          ),
+        );
+      }
+      return;
+    }
+
     if (await authService.isBiometricsAvailable()) {
       final didAuthenticate = await authService.authenticateWithBiometrics();
       if (didAuthenticate && mounted) {
@@ -66,7 +78,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Biometric authentication not available'),
+            content: Text('Biometric authentication not available on this device'),
           ),
         );
       }

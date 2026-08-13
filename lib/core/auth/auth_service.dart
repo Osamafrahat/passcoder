@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:local_auth/local_auth.dart';
@@ -42,6 +43,7 @@ class AuthService extends ChangeNotifier {
   }
 
   Future<bool> isBiometricsAvailable() async {
+    if (kIsWeb) return false;
     try {
       final canAuthenticate = await _localAuth.canCheckBiometrics;
       final isDeviceSupported = await _localAuth.isDeviceSupported();
@@ -50,8 +52,10 @@ class AuthService extends ChangeNotifier {
       return false;
     }
   }
+  }
 
   Future<bool> authenticateWithBiometrics() async {
+    if (kIsWeb) return false;
     try {
       final didAuthenticate = await _localAuth.authenticate(
         localizedReason: 'Please authenticate to access PassCoder',
@@ -64,6 +68,7 @@ class AuthService extends ChangeNotifier {
     } catch (e) {
       return false;
     }
+  }
   }
 
   Future<void> resetPassword(String email) async {
