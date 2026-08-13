@@ -1,0 +1,38 @@
+name: passcoder
+description: Cross-platform password manager with cloud sync
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  supabase_flutter: ^2.0.0
+  flutter_secure_storage: ^9.0.0
+  local_auth: ^2.1.0
+  encrypt: ^5.0.0
+  pointycastle: ^3.7.0
+  uuid: ^4.0.0
+  intl: ^0.18.0
+  flutter_svg: ^2.0.0
+  google_fonts: ^6.0.0
+  provider: ^6.0.0
+  flutter_staggered_animations: ^1.1.0
+  share_plus: ^7.0.0
+  random_password_generator: ^3.0.0
+  equatable: ^2.0.0
+  json_annotation: ^4.8.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  build_runner: ^2.4.0
+  json_serializable: ^6.7.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/icons/

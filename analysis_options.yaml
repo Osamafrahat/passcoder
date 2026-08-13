@@ -1,0 +1,46 @@
+include: package:flutter_lints/flutter.yaml
+
+linter:
+  rules:
+    - prefer_const_constructors
+    - prefer_const_declarations
+    - prefer_final_fields
+    - prefer_final_locals
+    - avoid_print
+    - avoid_unnecessary_containers
+    - prefer_is_empty
+    - prefer_is_not_empty
+    - prefer_single_quotes
+    - sort_child_properties_last
+    - use_key_in_widget_constructors
+    - sized_box_for_whitespace
+    - unnecessary_string_interpolations
+    - prefer_is_not_empty
+    - prefer_contains
+    - avoid_redundant_argument_values
+    - avoid_relative_lib_imports
+    - prefer_adjacent_string_concatenation
+    - prefer_collection_literals
+    - prefer_comma_declarations
+    - prefer_contains
+    - prefer_final_in_for_each
+    - prefer_for_elements_to_map_fromIterable
+    - prefer_if_elements_to_conditional_expressions
+    - prefer_if_null_operators
+    - prefer_inlining_adding
+    - prefer_is_empty
+    - prefer_is_not_empty
+    - prefer_iterable_whereType
+    - prefer_null_aware_operators
+    - prefer_single_quotes
+    - sized_box_for_whitespace
+    - sort_child_properties_last
+    - unnecessary_const
+    - unnecessary_new
+    - unnecessary_this
+    - use_function_type_syntax_for_parameters
+    - use_key_in_widget_constructors
+
+analyzer:
+  errors:
+    invalid_annotation_target: ignore
