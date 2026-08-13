@@ -1,6 +1,6 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:random_password_generator/random_password_generator.dart';
 import '../../models/password_model.dart';
 import '../../core/encryption/encryption_service.dart';
 
@@ -78,15 +78,15 @@ class _PasswordFormScreenState extends State<PasswordFormScreen> {
   }
 
   void _generatePassword() {
-    final passwordGenerator = RandomPasswordGenerator();
-    final password = passwordGenerator.randomPassword(
-      passwordLength: 16,
-      letters: true,
-      uppercase: true,
-      numbers: true,
-      specialChar: true,
-    );
-    setState(() => _passwordController.text = password);
+    const String chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#\$%^&*()_+-=[]{}|;:,.<>?';
+    final Random random = Random();
+    final StringBuffer password = StringBuffer();
+
+    for (int i = 0; i < 16; i++) {
+      password.write(chars[random.nextInt(chars.length)]);
+    }
+
+    setState(() => _passwordController.text = password.toString());
   }
 
   Future<void> _savePassword() async {

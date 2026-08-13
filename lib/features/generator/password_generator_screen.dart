@@ -1,6 +1,6 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:random_password_generator/random_password_generator.dart';
 
 class PasswordGeneratorScreen extends StatefulWidget {
   const PasswordGeneratorScreen({super.key});
@@ -10,7 +10,6 @@ class PasswordGeneratorScreen extends StatefulWidget {
 }
 
 class _PasswordGeneratorScreenState extends State<PasswordGeneratorScreen> {
-  final RandomPasswordGenerator _passwordGenerator = RandomPasswordGenerator();
   String _generatedPassword = '';
   int _passwordLength = 16;
   bool _includeLetters = true;
@@ -25,14 +24,27 @@ class _PasswordGeneratorScreenState extends State<PasswordGeneratorScreen> {
   }
 
   void _generatePassword() {
-    final password = _passwordGenerator.randomPassword(
-      passwordLength: _passwordLength.toDouble(),
-      letters: _includeLetters,
-      uppercase: _includeUppercase,
-      numbers: _includeNumbers,
-      specialChar: _includeSpecialChars,
-    );
-    setState(() => _generatedPassword = password);
+    const String letters = 'abcdefghijklmnopqrstuvwxyz';
+    const String uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const String numbers = '0123456789';
+    const String specialChars = '!@#\$%^&*()_+-=[]{}|;:,.<>?';
+
+    String chars = '';
+    if (_includeLetters) chars += letters;
+    if (_includeUppercase) chars += uppercase;
+    if (_includeNumbers) chars += numbers;
+    if (_includeSpecialChars) chars += specialChars;
+
+    if (chars.isEmpty) chars = letters;
+
+    final Random random = Random();
+    final StringBuffer password = StringBuffer();
+
+    for (int i = 0; i < _passwordLength; i++) {
+      password.write(chars[random.nextInt(chars.length)]);
+    }
+
+    setState(() => _generatedPassword = password.toString());
   }
 
   void _copyToClipboard() {

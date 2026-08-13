@@ -21,7 +21,7 @@ dependencies:
   provider: ^6.0.0
   flutter_staggered_animations: ^1.1.0
   share_plus: ^7.0.0
-  random_password_generator: ^3.0.0
+
   equatable: ^2.0.0
   json_annotation: ^4.8.0
 
