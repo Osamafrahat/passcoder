@@ -77,15 +77,6 @@ class _CardsListScreenState extends State<CardsListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Credit Cards'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadCards,
-          ),
-        ],
-      ),
       body: Column(
         children: [
           Padding(

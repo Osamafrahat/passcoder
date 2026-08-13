@@ -92,15 +92,6 @@ class _PasswordListScreenState extends State<PasswordListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Passwords'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadPasswords,
-          ),
-        ],
-      ),
       body: Column(
         children: [
           Padding(

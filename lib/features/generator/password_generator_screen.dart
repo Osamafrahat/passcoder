@@ -87,9 +87,6 @@ class _PasswordGeneratorScreenState extends State<PasswordGeneratorScreen> {
     final strengthLabel = _getStrengthLabel(strength);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Password Generator'),
-      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(

@@ -52,7 +52,6 @@ class AuthService extends ChangeNotifier {
       return false;
     }
   }
-  }
 
   Future<bool> authenticateWithBiometrics() async {
     if (kIsWeb) return false;
@@ -68,7 +67,6 @@ class AuthService extends ChangeNotifier {
     } catch (e) {
       return false;
     }
-  }
   }
 
   Future<void> resetPassword(String email) async {
