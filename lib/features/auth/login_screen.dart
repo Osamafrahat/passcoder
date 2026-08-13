@@ -16,6 +16,21 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _obscurePassword = true;
+  bool _biometricsAvailable = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkBiometrics();
+  }
+
+  Future<void> _checkBiometrics() async {
+    final authService = context.read<AuthService>();
+    final available = await authService.isBiometricsAvailable();
+    if (mounted) {
+      setState(() => _biometricsAvailable = available);
+    }
+  }
 
   @override
   void dispose() {
@@ -55,6 +70,32 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _loginWithGoogle() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final authService = context.read<AuthService>();
+      await authService.signInWithGoogle();
+
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/home');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString()),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
   Future<void> _biometricLogin() async {
     final authService = context.read<AuthService>();
 
@@ -62,14 +103,14 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Biometric login is not available on web. Please use email/password.'),
+            content: Text('Biometric login is not available on web. Use email/password or Google.'),
           ),
         );
       }
       return;
     }
 
-    if (await authService.isBiometricsAvailable()) {
+    if (_biometricsAvailable) {
       final didAuthenticate = await authService.authenticateWithBiometrics();
       if (didAuthenticate && mounted) {
         Navigator.pushReplacementNamed(context, '/home');
@@ -99,7 +140,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Icon(
-                    Icons.lock_person,
+                    Icons.shield_outlined,
                     size: 80,
                     color: Theme.of(context).colorScheme.primary,
                   ),
@@ -120,6 +161,33 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 48),
+                  FilledButton.icon(
+                    onPressed: _isLoading ? null : _loginWithGoogle,
+                    icon: const Icon(Icons.g_mobiledata, size: 24),
+                    label: const Text('Continue with Google'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.black87,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      const Expanded(child: Divider()),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          'or',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                      const Expanded(child: Divider()),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
@@ -169,6 +237,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 24),
                   FilledButton(
                     onPressed: _isLoading ? null : _login,
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
                     child: _isLoading
                         ? const SizedBox(
                             height: 20,
@@ -180,12 +251,17 @@ class _LoginScreenState extends State<LoginScreen> {
                           )
                         : const Text('Sign In'),
                   ),
-                  const SizedBox(height: 16),
-                  OutlinedButton.icon(
-                    onPressed: _biometricLogin,
-                    icon: const Icon(Icons.fingerprint),
-                    label: const Text('Sign in with Biometrics'),
-                  ),
+                  if (_biometricsAvailable) ...[
+                    const SizedBox(height: 16),
+                    OutlinedButton.icon(
+                      onPressed: _biometricLogin,
+                      icon: const Icon(Icons.fingerprint),
+                      label: const Text('Sign in with Biometrics'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 16),
                   TextButton(
                     onPressed: () {

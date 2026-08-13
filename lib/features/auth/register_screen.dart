@@ -63,6 +63,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
+  Future<void> _registerWithGoogle() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final authService = context.read<AuthService>();
+      await authService.signInWithGoogle();
+
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/home');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString()),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -85,6 +111,33 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     color: Theme.of(context).colorScheme.primary,
                   ),
                   const SizedBox(height: 32),
+                  FilledButton.icon(
+                    onPressed: _isLoading ? null : _registerWithGoogle,
+                    icon: const Icon(Icons.g_mobiledata, size: 24),
+                    label: const Text('Sign up with Google'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.black87,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      const Expanded(child: Divider()),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          'or',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                      const Expanded(child: Divider()),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
@@ -168,6 +221,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 24),
                   FilledButton(
                     onPressed: _isLoading ? null : _register,
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
                     child: _isLoading
                         ? const SizedBox(
                             height: 20,

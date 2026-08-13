@@ -37,8 +37,11 @@ class AuthService extends ChangeNotifier {
     return response;
   }
 
-  Future<void> signOut() async {
-    await _supabase.auth.signOut();
+  Future<void> signInWithGoogle() async {
+    await _supabase.auth.signInWithOAuth(
+      OAuthProvider.google,
+      redirectTo: kIsWeb ? null : 'io.supabase.passcoder://login-callback/',
+    );
     notifyListeners();
   }
 
@@ -53,6 +56,15 @@ class AuthService extends ChangeNotifier {
     }
   }
 
+  Future<List<BiometricType>> getAvailableBiometrics() async {
+    if (kIsWeb) return [];
+    try {
+      return await _localAuth.getAvailableBiometrics();
+    } catch (e) {
+      return [];
+    }
+  }
+
   Future<bool> authenticateWithBiometrics() async {
     if (kIsWeb) return false;
     try {
@@ -60,13 +72,18 @@ class AuthService extends ChangeNotifier {
         localizedReason: 'Please authenticate to access PassCoder',
         options: const AuthenticationOptions(
           stickyAuth: true,
-          biometricOnly: true,
+          biometricOnly: false,
         ),
       );
       return didAuthenticate;
     } catch (e) {
       return false;
     }
+  }
+
+  Future<void> signOut() async {
+    await _supabase.auth.signOut();
+    notifyListeners();
   }
 
   Future<void> resetPassword(String email) async {
