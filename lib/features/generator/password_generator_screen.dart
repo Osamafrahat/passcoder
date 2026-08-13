@@ -190,29 +190,21 @@ class _PasswordGeneratorScreenState extends State<PasswordGeneratorScreen> {
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Password Length: $_passwordLength',
-                          style: Theme.of(context).textTheme.bodyLarge,
-                        ),
-                        SizedBox(
-                          width: 200,
-                          child: Slider(
-                            value: _passwordLength.toDouble(),
-                            min: 8,
-                            max: 64,
-                            divisions: 56,
-                            label: _passwordLength.toString(),
-                            onChanged: (value) {
-                              setState(() => _passwordLength = value.round());
+                    Text(
+                      'Password Length: $_passwordLength',
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                    Slider(
+                      value: _passwordLength.toDouble(),
+                      min: 8,
+                      max: 64,
+                      divisions: 56,
+                      label: _passwordLength.toString(),
+                      onChanged: (value) {
+                        setState(() => _passwordLength = value.round());
                               _generatePassword();
                             },
                           ),
-                        ),
-                      ],
-                    ),
                     const Divider(),
                     SwitchListTile(
                       title: const Text('Letters (a-z)'),
