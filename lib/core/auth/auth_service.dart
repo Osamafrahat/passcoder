@@ -1,11 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:local_auth/local_auth.dart';
 
 class AuthService extends ChangeNotifier {
   final SupabaseClient _supabase = Supabase.instance.client;
   final LocalAuthentication _localAuth = LocalAuthentication();
+  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
 
   User? get currentUser => _supabase.auth.currentUser;
   Session? get currentSession => _supabase.auth.currentSession;
@@ -21,6 +23,9 @@ class AuthService extends ChangeNotifier {
       email: email,
       password: password,
     );
+    if (response.user != null) {
+      await _saveCredentials(email, password);
+    }
     notifyListeners();
     return response;
   }
@@ -33,6 +38,9 @@ class AuthService extends ChangeNotifier {
       email: email,
       password: password,
     );
+    if (response.user != null) {
+      await _saveCredentials(email, password);
+    }
     notifyListeners();
     return response;
   }
@@ -43,6 +51,28 @@ class AuthService extends ChangeNotifier {
       redirectTo: kIsWeb ? null : 'io.supabase.passcoder://login-callback/',
     );
     notifyListeners();
+  }
+
+  Future<void> _saveCredentials(String email, String password) async {
+    try {
+      await _secureStorage.write(key: 'saved_email', value: email);
+      await _secureStorage.write(key: 'saved_password', value: password);
+    } catch (e) {
+      // Silent fail - biometrics won't work but app still functions
+    }
+  }
+
+  Future<Map<String, String>?> _getSavedCredentials() async {
+    try {
+      final email = await _secureStorage.read(key: 'saved_email');
+      final password = await _secureStorage.read(key: 'saved_password');
+      if (email != null && password != null) {
+        return {'email': email, 'password': password};
+      }
+    } catch (e) {
+      return null;
+    }
+    return null;
   }
 
   Future<bool> isBiometricsAvailable() async {
@@ -56,20 +86,16 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-  Future<List<BiometricType>> getAvailableBiometrics() async {
-    if (kIsWeb) return [];
-    try {
-      return await _localAuth.getAvailableBiometrics();
-    } catch (e) {
-      return [];
-    }
+  Future<bool> hasSavedCredentials() async {
+    final creds = await _getSavedCredentials();
+    return creds != null;
   }
 
   Future<bool> authenticateWithBiometrics() async {
     if (kIsWeb) return false;
     try {
       final didAuthenticate = await _localAuth.authenticate(
-        localizedReason: 'Please authenticate to access PassCoder',
+        localizedReason: 'Authenticate to access your passwords',
         options: const AuthenticationOptions(
           stickyAuth: true,
           biometricOnly: false,
@@ -81,8 +107,26 @@ class AuthService extends ChangeNotifier {
     }
   }
 
+  Future<AuthResponse?> signInWithBiometrics() async {
+    final creds = await _getSavedCredentials();
+    if (creds == null) return null;
+
+    try {
+      final response = await _supabase.auth.signInWithPassword(
+        email: creds['email']!,
+        password: creds['password']!,
+      );
+      notifyListeners();
+      return response;
+    } catch (e) {
+      return null;
+    }
+  }
+
   Future<void> signOut() async {
     await _supabase.auth.signOut();
+    await _secureStorage.delete(key: 'saved_email');
+    await _secureStorage.delete(key: 'saved_password');
     notifyListeners();
   }
 

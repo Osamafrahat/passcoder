@@ -17,6 +17,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _biometricsAvailable = false;
+  bool _hasSavedCredentials = false;
 
   @override
   void initState() {
@@ -27,8 +28,12 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _checkBiometrics() async {
     final authService = context.read<AuthService>();
     final available = await authService.isBiometricsAvailable();
+    final hasCreds = await authService.hasSavedCredentials();
     if (mounted) {
-      setState(() => _biometricsAvailable = available);
+      setState(() {
+        _biometricsAvailable = available;
+        _hasSavedCredentials = hasCreds;
+      });
     }
   }
 
@@ -103,31 +108,60 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Biometric login is not available on web. Use email/password or Google.'),
+            content: Text('Biometric login is not available on web.'),
           ),
         );
       }
       return;
     }
 
-    if (_biometricsAvailable) {
-      final didAuthenticate = await authService.authenticateWithBiometrics();
-      if (didAuthenticate && mounted) {
-        Navigator.pushReplacementNamed(context, '/home');
+    setState(() => _isLoading = true);
+
+    try {
+      final didAuth = await authService.authenticateWithBiometrics();
+      if (!didAuth) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Authentication failed. Please try again.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
       }
-    } else {
-      if (mounted) {
+
+      final response = await authService.signInWithBiometrics();
+      if (response != null && mounted) {
+        Navigator.pushReplacementNamed(context, '/home');
+      } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Biometric authentication not available on this device'),
+            content: Text('No saved credentials. Please sign in first.'),
+            backgroundColor: Colors.orange,
           ),
         );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString()),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final showBiometrics = _biometricsAvailable && _hasSavedCredentials;
+
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -251,7 +285,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           )
                         : const Text('Sign In'),
                   ),
-                  if (_biometricsAvailable) ...[
+                  if (showBiometrics) ...[
                     const SizedBox(height: 16),
                     OutlinedButton.icon(
                       onPressed: _biometricLogin,
