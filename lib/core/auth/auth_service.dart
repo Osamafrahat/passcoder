@@ -1,14 +1,11 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:local_auth/local_auth.dart';
 
 class AuthService extends ChangeNotifier {
   final SupabaseClient _supabase = Supabase.instance.client;
   final LocalAuthentication _localAuth = LocalAuthentication();
-  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage(
-    aOptions: AndroidOptions(encryptedSharedPreferences: true),
-  );
 
   User? get currentUser => _supabase.auth.currentUser;
   Session? get currentSession => _supabase.auth.currentSession;
@@ -56,8 +53,10 @@ class AuthService extends ChangeNotifier {
 
   Future<void> _saveCredentials(String email, String password) async {
     try {
-      await _secureStorage.write(key: 'saved_email', value: email);
-      await _secureStorage.write(key: 'saved_password', value: password);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('has_saved_credentials', true);
+      await prefs.setString('saved_email', email);
+      await prefs.setString('saved_password', password);
     } catch (e) {
       debugPrint('Failed to save credentials: $e');
     }
@@ -65,14 +64,14 @@ class AuthService extends ChangeNotifier {
 
   Future<Map<String, String>?> _getSavedCredentials() async {
     try {
-      final email = await _secureStorage.read(key: 'saved_email');
-      final password = await _secureStorage.read(key: 'saved_password');
+      final prefs = await SharedPreferences.getInstance();
+      final email = prefs.getString('saved_email');
+      final password = prefs.getString('saved_password');
       if (email != null && password != null) {
         return {'email': email, 'password': password};
       }
     } catch (e) {
       debugPrint('Failed to read credentials: $e');
-      return null;
     }
     return null;
   }
@@ -89,8 +88,12 @@ class AuthService extends ChangeNotifier {
   }
 
   Future<bool> hasSavedCredentials() async {
-    final creds = await _getSavedCredentials();
-    return creds != null;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getBool('has_saved_credentials') ?? false;
+    } catch (e) {
+      return false;
+    }
   }
 
   Future<bool> authenticateWithBiometrics() async {
@@ -99,8 +102,9 @@ class AuthService extends ChangeNotifier {
       final didAuthenticate = await _localAuth.authenticate(
         localizedReason: 'Authenticate to access your passwords',
         options: const AuthenticationOptions(
-          stickyAuth: true,
+          stickyAuth: false,
           biometricOnly: false,
+          useErrorDialogs: true,
         ),
       );
       return didAuthenticate;
@@ -128,9 +132,11 @@ class AuthService extends ChangeNotifier {
   }
 
   Future<void> signOut() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('has_saved_credentials');
+    await prefs.remove('saved_email');
+    await prefs.remove('saved_password');
     await _supabase.auth.signOut();
-    await _secureStorage.delete(key: 'saved_email');
-    await _secureStorage.delete(key: 'saved_password');
     notifyListeners();
   }
 
