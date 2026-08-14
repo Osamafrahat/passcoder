@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/auth/auth_service.dart';
 import '../features/auth/login_screen.dart';
 import '../features/auth/register_screen.dart';
@@ -37,9 +38,6 @@ class _PassCoderAppState extends State<PassCoderApp> {
 
   @override
   Widget build(BuildContext context) {
-    final authService = context.watch<AuthService>();
-    final isLoggedIn = authService.isAuthenticated;
-
     return MaterialApp(
       title: 'PassCoder',
       debugShowCheckedModeBanner: false,
@@ -62,7 +60,7 @@ class _PassCoderAppState extends State<PassCoderApp> {
         useMaterial3: true,
       ),
       themeMode: ThemeMode.system,
-      home: isLoggedIn ? const HomeScreen() : const LoginScreen(),
+      home: const AuthGate(),
       onGenerateRoute: (settings) {
         if (settings.name == '/home') {
           return MaterialPageRoute(builder: (_) => const HomeScreen());
@@ -70,10 +68,37 @@ class _PassCoderAppState extends State<PassCoderApp> {
         if (settings.name == '/generator') {
           return MaterialPageRoute(builder: (_) => const PasswordGeneratorScreen());
         }
+        if (settings.name == '/login') {
+          return MaterialPageRoute(builder: (_) => const LoginScreen());
+        }
+        if (settings.name == '/register') {
+          return MaterialPageRoute(builder: (_) => const RegisterScreen());
+        }
         return null;
       },
       onUnknownRoute: (settings) {
-        return MaterialPageRoute(builder: (_) => isLoggedIn ? const HomeScreen() : const LoginScreen());
+        return MaterialPageRoute(builder: (_) => const AuthGate());
+      },
+    );
+  }
+}
+
+class AuthGate extends StatelessWidget {
+  const AuthGate({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<AuthState>(
+      stream: Supabase.instance.client.auth.onAuthStateChange,
+      initialData: Supabase.instance.client.currentSession != null
+          ? AuthState(Supabase.instance.client.currentSession, null)
+          : null,
+      builder: (context, snapshot) {
+        final session = snapshot.data?.session;
+        if (session != null) {
+          return const HomeScreen();
+        }
+        return const LoginScreen();
       },
     );
   }
