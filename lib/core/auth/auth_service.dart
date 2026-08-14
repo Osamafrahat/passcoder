@@ -7,7 +7,9 @@ import 'package:local_auth/local_auth.dart';
 class AuthService extends ChangeNotifier {
   final SupabaseClient _supabase = Supabase.instance.client;
   final LocalAuthentication _localAuth = LocalAuthentication();
-  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
+  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage(
+    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+  );
 
   User? get currentUser => _supabase.auth.currentUser;
   Session? get currentSession => _supabase.auth.currentSession;
@@ -48,7 +50,7 @@ class AuthService extends ChangeNotifier {
   Future<void> signInWithGoogle() async {
     await _supabase.auth.signInWithOAuth(
       OAuthProvider.google,
-      redirectTo: kIsWeb ? null : 'io.supabase.passcoder://login-callback/',
+      redirectTo: 'io.supabase.passcoder://login-callback/',
     );
     notifyListeners();
   }
@@ -58,7 +60,7 @@ class AuthService extends ChangeNotifier {
       await _secureStorage.write(key: 'saved_email', value: email);
       await _secureStorage.write(key: 'saved_password', value: password);
     } catch (e) {
-      // Silent fail - biometrics won't work but app still functions
+      debugPrint('Failed to save credentials: $e');
     }
   }
 
@@ -70,6 +72,7 @@ class AuthService extends ChangeNotifier {
         return {'email': email, 'password': password};
       }
     } catch (e) {
+      debugPrint('Failed to read credentials: $e');
       return null;
     }
     return null;
@@ -103,6 +106,7 @@ class AuthService extends ChangeNotifier {
       );
       return didAuthenticate;
     } catch (e) {
+      debugPrint('Biometric auth failed: $e');
       return false;
     }
   }
@@ -119,6 +123,7 @@ class AuthService extends ChangeNotifier {
       notifyListeners();
       return response;
     } catch (e) {
+      debugPrint('Biometric sign in failed: $e');
       return null;
     }
   }
