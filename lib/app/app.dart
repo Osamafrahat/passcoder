@@ -55,6 +55,7 @@ class _AuthGateState extends State<AuthGate> {
   bool _isLoading = true;
   bool _authenticated = false;
   bool _biometricFailed = false;
+  bool _pendingBiometric = false;
   bool _checked = false;
   String _debugInfo = '';
   StreamSubscription<AuthState>? _authSubscription;
@@ -118,16 +119,24 @@ class _AuthGateState extends State<AuthGate> {
     debugPrint('availableMethods: $availableMethods');
 
     if (hasSaved && biometricsAvailable) {
-      final success = await _authenticateWithBiometrics();
-      debugPrint('biometricResult: $success');
-      if (success) {
-        setState(() { _isLoading = false; _authenticated = true; });
-      } else {
-        setState(() { _isLoading = false; _authenticated = false; _biometricFailed = true; });
-      }
+      _pendingBiometric = true;
+      setState(() { _isLoading = false; });
+      Future.delayed(const Duration(milliseconds: 500), _triggerBiometric);
     } else {
       debugPrint('SKIPPING biometric - going to home directly');
       setState(() { _isLoading = false; _authenticated = true; _debugInfo = 'hasSaved=$hasSaved biometrics=$biometricsAvailable methods=$availableMethods'; });
+    }
+  }
+
+  Future<void> _triggerBiometric() async {
+    if (!_pendingBiometric || !mounted) return;
+    _pendingBiometric = false;
+    final success = await _authenticateWithBiometrics();
+    debugPrint('biometricResult: $success');
+    if (success) {
+      setState(() { _authenticated = true; });
+    } else {
+      setState(() { _authenticated = false; _biometricFailed = true; });
     }
   }
 
