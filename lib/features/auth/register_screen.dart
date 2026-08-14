@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/auth/auth_service.dart';
 import '../../app/app.dart';
 
@@ -54,6 +55,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
     try {
       final authService = context.read<AuthService>();
       await authService.signInWithGoogle();
+      // Save a marker for Google sign-in so biometric gate works
+      try {
+        const storage = FlutterSecureStorage(aOptions: AndroidOptions(encryptedSharedPreferences: true));
+        final email = Supabase.instance.client.auth.currentUser?.email ?? 'google_user';
+        await storage.write(key: 'saved_email', value: email);
+        await storage.write(key: 'saved_password', value: 'google_auth');
+      } catch (_) {
+        const fallbackStorage = FlutterSecureStorage();
+        final email = Supabase.instance.client.auth.currentUser?.email ?? 'google_user';
+        await fallbackStorage.write(key: 'saved_email', value: email);
+        await fallbackStorage.write(key: 'saved_password', value: 'google_auth');
+      }
       if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AuthGate()));
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));

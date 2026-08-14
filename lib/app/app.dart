@@ -136,10 +136,20 @@ class _AuthGateState extends State<AuthGate> {
 
   Future<bool> _hasSavedCredentials() async {
     try {
-      final email = await _secureStorage.read(key: 'saved_email');
-      final password = await _secureStorage.read(key: 'saved_password');
+      // Try encrypted storage first
+      const encryptedStorage = FlutterSecureStorage(aOptions: AndroidOptions(encryptedSharedPreferences: true));
+      var email = await encryptedStorage.read(key: 'saved_email');
+      var password = await encryptedStorage.read(key: 'saved_password');
+      if (email != null && password != null) return true;
+
+      // Fallback to default storage
+      const defaultStorage = FlutterSecureStorage();
+      email = await defaultStorage.read(key: 'saved_email');
+      password = await defaultStorage.read(key: 'saved_password');
+      debugPrint('CREDENTIAL READ: email=$email (default storage)');
       return email != null && password != null;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('CREDENTIAL READ ERROR: $e');
       return false;
     }
   }

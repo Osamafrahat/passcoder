@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/auth/auth_service.dart';
 import '../../app/app.dart';
 import 'register_screen.dart';
@@ -59,9 +60,27 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       final authService = context.read<AuthService>();
       await authService.signIn(email: _emailController.text.trim(), password: _passwordController.text);
       // Save credentials directly for biometric login
-      const storage = FlutterSecureStorage(aOptions: AndroidOptions(encryptedSharedPreferences: true));
-      await storage.write(key: 'saved_email', value: _emailController.text.trim());
-      await storage.write(key: 'saved_password', value: _passwordController.text);
+      try {
+        const storage = FlutterSecureStorage(aOptions: AndroidOptions(encryptedSharedPreferences: true));
+        await storage.write(key: 'saved_email', value: _emailController.text.trim());
+        await storage.write(key: 'saved_password', value: _passwordController.text);
+        // Verify the write worked
+        final verifyEmail = await storage.read(key: 'saved_email');
+        debugPrint('CREDENTIAL SAVE: email=$verifyEmail');
+        if (verifyEmail == null) {
+          // Fallback to default storage
+          const fallbackStorage = FlutterSecureStorage();
+          await fallbackStorage.write(key: 'saved_email', value: _emailController.text.trim());
+          await fallbackStorage.write(key: 'saved_password', value: _passwordController.text);
+          debugPrint('CREDENTIAL SAVE: used fallback storage');
+        }
+      } catch (e) {
+        debugPrint('CREDENTIAL SAVE ERROR: $e');
+        // Try default storage as fallback
+        const fallbackStorage = FlutterSecureStorage();
+        await fallbackStorage.write(key: 'saved_email', value: _emailController.text.trim());
+        await fallbackStorage.write(key: 'saved_password', value: _passwordController.text);
+      }
       if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AuthGate()));
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red, behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))));
@@ -75,6 +94,18 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     try {
       final authService = context.read<AuthService>();
       await authService.signInWithGoogle();
+      // Save a marker for Google sign-in so biometric gate works
+      try {
+        const storage = FlutterSecureStorage(aOptions: AndroidOptions(encryptedSharedPreferences: true));
+        final email = Supabase.instance.client.auth.currentUser?.email ?? 'google_user';
+        await storage.write(key: 'saved_email', value: email);
+        await storage.write(key: 'saved_password', value: 'google_auth');
+      } catch (_) {
+        const fallbackStorage = FlutterSecureStorage();
+        final email = Supabase.instance.client.auth.currentUser?.email ?? 'google_user';
+        await fallbackStorage.write(key: 'saved_email', value: email);
+        await fallbackStorage.write(key: 'saved_password', value: 'google_auth');
+      }
       if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AuthGate()));
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red, behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))));
