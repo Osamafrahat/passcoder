@@ -175,13 +175,8 @@ class _AuthGateState extends State<AuthGate> {
   }
 
   void _retryBiometric() async {
-    setState(() { _isLoading = true; _biometricFailed = false; });
-    final success = await _authenticateWithBiometrics();
-    if (success) {
-      setState(() { _isLoading = false; _authenticated = true; });
-    } else {
-      setState(() { _isLoading = false; _biometricFailed = true; });
-    }
+    _pendingBiometric = true;
+    Future.delayed(const Duration(milliseconds: 300), _triggerBiometric);
   }
 
   void _usePassword() async {
