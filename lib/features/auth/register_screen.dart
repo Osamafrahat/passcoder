@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/auth/auth_service.dart';
@@ -35,10 +35,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
     try {
       final authService = context.read<AuthService>();
       await authService.signUp(email: _emailController.text.trim(), password: _passwordController.text);
-      // Save credentials directly for biometric login
-      const storage = FlutterSecureStorage(aOptions: AndroidOptions(encryptedSharedPreferences: true));
-      await storage.write(key: 'saved_email', value: _emailController.text.trim());
-      await storage.write(key: 'saved_password', value: _passwordController.text);
+      // Save credentials for biometric login
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('has_saved_credentials', true);
+      await prefs.setString('saved_email', _emailController.text.trim());
+      debugPrint('REGISTER: Credentials saved via SharedPreferences');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Account created! Check email for verification.'), backgroundColor: Colors.green, behavior: SnackBarBehavior.floating));
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AuthGate()));
@@ -55,18 +56,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
     try {
       final authService = context.read<AuthService>();
       await authService.signInWithGoogle();
-      // Save a marker for Google sign-in so biometric gate works
-      try {
-        const storage = FlutterSecureStorage(aOptions: AndroidOptions(encryptedSharedPreferences: true));
-        final email = Supabase.instance.client.auth.currentUser?.email ?? 'google_user';
-        await storage.write(key: 'saved_email', value: email);
-        await storage.write(key: 'saved_password', value: 'google_auth');
-      } catch (_) {
-        const fallbackStorage = FlutterSecureStorage();
-        final email = Supabase.instance.client.auth.currentUser?.email ?? 'google_user';
-        await fallbackStorage.write(key: 'saved_email', value: email);
-        await fallbackStorage.write(key: 'saved_password', value: 'google_auth');
-      }
+      // Save marker for Google sign-in
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('has_saved_credentials', true);
+      await prefs.setString('saved_email', Supabase.instance.client.auth.currentUser?.email ?? 'google_user');
+      debugPrint('GOOGLE REGISTER: Credentials saved via SharedPreferences');
       if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AuthGate()));
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));

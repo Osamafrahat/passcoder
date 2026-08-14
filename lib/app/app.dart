@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:local_auth/local_auth.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../features/auth/login_screen.dart';
 import '../features/passwords/password_list_screen.dart';
@@ -50,9 +50,6 @@ class AuthGate extends StatefulWidget {
 
 class _AuthGateState extends State<AuthGate> {
   final LocalAuthentication _localAuth = LocalAuthentication();
-  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage(
-    aOptions: AndroidOptions(encryptedSharedPreferences: true),
-  );
   final SupabaseClient _supabase = Supabase.instance.client;
 
   bool _isLoading = true;
@@ -136,18 +133,11 @@ class _AuthGateState extends State<AuthGate> {
 
   Future<bool> _hasSavedCredentials() async {
     try {
-      // Try encrypted storage first
-      const encryptedStorage = FlutterSecureStorage(aOptions: AndroidOptions(encryptedSharedPreferences: true));
-      var email = await encryptedStorage.read(key: 'saved_email');
-      var password = await encryptedStorage.read(key: 'saved_password');
-      if (email != null && password != null) return true;
-
-      // Fallback to default storage
-      const defaultStorage = FlutterSecureStorage();
-      email = await defaultStorage.read(key: 'saved_email');
-      password = await defaultStorage.read(key: 'saved_password');
-      debugPrint('CREDENTIAL READ: email=$email (default storage)');
-      return email != null && password != null;
+      final prefs = await SharedPreferences.getInstance();
+      final hasSaved = prefs.getBool('has_saved_credentials') ?? false;
+      final email = prefs.getString('saved_email');
+      debugPrint('CREDENTIAL READ: hasSaved=$hasSaved, email=$email');
+      return hasSaved;
     } catch (e) {
       debugPrint('CREDENTIAL READ ERROR: $e');
       return false;
@@ -186,6 +176,8 @@ class _AuthGateState extends State<AuthGate> {
   }
 
   void _usePassword() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('has_saved_credentials');
     await _supabase.auth.signOut();
     setState(() { _authenticated = false; _biometricFailed = false; _isLoading = false; });
   }
@@ -322,6 +314,8 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
     if (confirm == true) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('has_saved_credentials');
       await Supabase.instance.client.auth.signOut();
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
