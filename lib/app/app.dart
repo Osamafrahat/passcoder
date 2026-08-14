@@ -165,11 +165,22 @@ class _AuthGateState extends State<AuthGate> {
 
   Future<bool> _authenticateWithBiometrics() async {
     try {
-      return await _localAuth.authenticate(
-        localizedReason: 'Authenticate to access your passwords',
-        options: const AuthenticationOptions(stickyAuth: true, biometricOnly: false),
+      debugPrint('=== AUTH ATTEMPT ===');
+      debugPrint('canCheckBiometrics: ${await _localAuth.canCheckBiometrics}');
+      debugPrint('isDeviceSupported: ${await _localAuth.isDeviceSupported()}');
+      final result = await _localAuth.authenticate(
+        localizedReason: 'Authenticate to access PassCoder',
+        options: const AuthenticationOptions(
+          stickyAuth: false,
+          biometricOnly: false,
+          useErrorDialogs: true,
+        ),
       );
-    } catch (_) {
+      debugPrint('authenticate result: $result');
+      return result;
+    } catch (e, st) {
+      debugPrint('authenticate ERROR: $e');
+      debugPrint('STACK: $st');
       return false;
     }
   }
