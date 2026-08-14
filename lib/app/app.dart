@@ -9,11 +9,37 @@ import '../features/notes/notes_list_screen.dart';
 import '../features/cards/cards_list_screen.dart';
 import '../features/generator/password_generator_screen.dart';
 
-class PassCoderApp extends StatelessWidget {
+class PassCoderApp extends StatefulWidget {
   const PassCoderApp({super.key});
 
   @override
+  State<PassCoderApp> createState() => _PassCoderAppState();
+}
+
+class _PassCoderAppState extends State<PassCoderApp> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _listenForAuthChanges();
+    });
+  }
+
+  void _listenForAuthChanges() {
+    final authService = context.read<AuthService>();
+    authService.authStateChanges.listen((data) {
+      final session = data.session;
+      if (session != null && mounted) {
+        Navigator.pushReplacementNamed(context, '/home');
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final authService = context.watch<AuthService>();
+    final isLoggedIn = authService.isAuthenticated;
+
     return MaterialApp(
       title: 'PassCoder',
       debugShowCheckedModeBanner: false,
@@ -36,12 +62,18 @@ class PassCoderApp extends StatelessWidget {
         useMaterial3: true,
       ),
       themeMode: ThemeMode.system,
-      initialRoute: '/login',
-      routes: {
-        '/login': (context) => const LoginScreen(),
-        '/register': (context) => const RegisterScreen(),
-        '/home': (context) => const HomeScreen(),
-        '/generator': (context) => const PasswordGeneratorScreen(),
+      home: isLoggedIn ? const HomeScreen() : const LoginScreen(),
+      onGenerateRoute: (settings) {
+        if (settings.name == '/home') {
+          return MaterialPageRoute(builder: (_) => const HomeScreen());
+        }
+        if (settings.name == '/generator') {
+          return MaterialPageRoute(builder: (_) => const PasswordGeneratorScreen());
+        }
+        return null;
+      },
+      onUnknownRoute: (settings) {
+        return MaterialPageRoute(builder: (_) => isLoggedIn ? const HomeScreen() : const LoginScreen());
       },
     );
   }
