@@ -27,7 +27,31 @@ class _PasswordDetailScreenState extends State<PasswordDetailScreen> {
     try {
       final decrypted = await _encryptionService.decryptData(widget.password.passwordEncrypted);
       setState(() => _decryptedPassword = decrypted);
-    } catch (e) { setState(() => _decryptedPassword = 'Error decrypting'); }
+    } catch (e) {
+      debugPrint('Decryption error: $e');
+      setState(() => _decryptedPassword = null);
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            icon: const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 48),
+            title: const Text('Decryption Failed'),
+            content: const Text('Could not decrypt this password. The encryption key may have been changed or lost. You can delete this entry and create a new one.'),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+              TextButton(
+                onPressed: () async {
+                  Navigator.pop(ctx);
+                  await Supabase.instance.client.from('passwords').delete().eq('id', widget.password.id);
+                  if (context.mounted) Navigator.pop(context);
+                },
+                child: const Text('Delete Entry', style: TextStyle(color: Colors.red)),
+              ),
+            ],
+          ),
+        );
+      }
+    }
   }
 
   void _copyToClipboard(String text, String label) {
@@ -78,7 +102,7 @@ class _PasswordDetailScreenState extends State<PasswordDetailScreen> {
                       );
                       if (confirm == true) {
                         await Supabase.instance.client.from('passwords').delete().eq('id', p.id);
-                        if (context.mounted) Navigator.pop(context);
+                  if (mounted) Navigator.pop(context);
                       }
                     },
                     icon: const Icon(Icons.delete_outline, color: Colors.white),

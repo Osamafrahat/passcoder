@@ -51,7 +51,17 @@ class _NoteFormScreenState extends State<NoteFormScreen> {
       }
       if (mounted) Navigator.pop(context);
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
+      if (mounted) {
+        debugPrint('Note save error: $e');
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Error'),
+            content: Text(e.toString()),
+            actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK'))],
+          ),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

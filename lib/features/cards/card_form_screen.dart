@@ -73,7 +73,17 @@ class _CardFormScreenState extends State<CardFormScreen> {
       }
       if (mounted) Navigator.pop(context);
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
+      if (mounted) {
+        debugPrint('Card save error: $e');
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Error'),
+            content: Text(e.toString()),
+            actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK'))],
+          ),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

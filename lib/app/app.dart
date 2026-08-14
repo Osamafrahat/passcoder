@@ -81,6 +81,12 @@ class _HomeScreenState extends State<HomeScreen> {
     );
     if (confirm == true) {
       await Supabase.instance.client.auth.signOut();
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const AuthGate()),
+          (route) => false,
+        );
+      }
     }
   }
 
