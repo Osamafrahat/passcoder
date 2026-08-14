@@ -6,9 +6,6 @@ import '../features/passwords/password_list_screen.dart';
 import '../features/notes/notes_list_screen.dart';
 import '../features/cards/cards_list_screen.dart';
 import '../features/generator/password_generator_screen.dart';
-import '../features/passwords/password_form_screen.dart';
-import '../features/notes/note_form_screen.dart';
-import '../features/cards/card_form_screen.dart';
 
 class PassCoderApp extends StatelessWidget {
   const PassCoderApp({super.key});
@@ -67,23 +64,8 @@ class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
 
   final _titles = const ['Passwords', 'Notes', 'Cards', 'Generator'];
-  final _fabLabels = const ['Add Password', 'Add Note', 'Add Card', ''];
   final _icons = const [Icons.lock_outline, Icons.note_alt_outlined, Icons.credit_card_outlined, Icons.password_outlined];
   final _selectedIcons = const [Icons.lock, Icons.note_alt, Icons.credit_card, Icons.password];
-
-  void _onFabPressed() {
-    switch (_currentIndex) {
-      case 0:
-        Navigator.push(context, MaterialPageRoute(builder: (_) => const PasswordFormScreen()));
-        break;
-      case 1:
-        Navigator.push(context, MaterialPageRoute(builder: (_) => const NoteFormScreen()));
-        break;
-      case 2:
-        Navigator.push(context, MaterialPageRoute(builder: (_) => const CardFormScreen()));
-        break;
-    }
-  }
 
   void _onLogout() async {
     final confirm = await showDialog<bool>(
@@ -105,19 +87,18 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final screens = [
-      PasswordListScreen(),
-      NotesListScreen(),
-      CardsListScreen(),
-      const PasswordGeneratorScreen(),
-    ];
 
     return Scaffold(
       body: Stack(
         children: [
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 300),
-            child: screens[_currentIndex],
+          IndexedStack(
+            index: _currentIndex,
+            children: const [
+              PasswordListScreen(),
+              NotesListScreen(),
+              CardsListScreen(),
+              PasswordGeneratorScreen(),
+            ],
           ),
           Positioned(
             top: MediaQuery.of(context).padding.top + 8,
@@ -138,14 +119,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      floatingActionButton: _currentIndex < 3
-          ? FloatingActionButton.extended(
-              onPressed: _onFabPressed,
-              icon: const Icon(Icons.add),
-              label: Text(_fabLabels[_currentIndex]),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            )
-          : null,
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 20, offset: const Offset(0, -5))],

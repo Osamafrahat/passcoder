@@ -5,8 +5,7 @@ import '../../core/encryption/encryption_service.dart';
 import 'card_form_screen.dart';
 
 class CardsListScreen extends StatefulWidget {
-  final VoidCallback? onAdd;
-  const CardsListScreen({super.key, this.onAdd});
+  const CardsListScreen({super.key});
   @override
   State<CardsListScreen> createState() => _CardsListScreenState();
 }
@@ -53,75 +52,84 @@ class _CardsListScreenState extends State<CardsListScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('My Cards', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 14),
-            TextField(
-              onChanged: (v) => setState(() => _searchQuery = v),
-              decoration: InputDecoration(hintText: 'Search cards...', prefixIcon: const Icon(Icons.search, size: 22),
-                filled: true, fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+    return Scaffold(
+      floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'fab_cards',
+        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CardFormScreen())).then((_) => _loadCards()),
+        icon: const Icon(Icons.add),
+        label: const Text('Add Card'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+      body: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('My Cards', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 14),
+              TextField(
+                onChanged: (v) => setState(() => _searchQuery = v),
+                decoration: InputDecoration(hintText: 'Search cards...', prefixIcon: const Icon(Icons.search, size: 22),
+                  filled: true, fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                ),
               ),
-            ),
-          ]),
-        ),
-        Expanded(
-          child: _isLoading ? const Center(child: CircularProgressIndicator())
-              : _decryptedCards.isEmpty
-                  ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                      Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(color: theme.colorScheme.primary.withValues(alpha: 0.1), shape: BoxShape.circle),
-                        child: Icon(Icons.credit_card_outlined, size: 48, color: theme.colorScheme.primary),
+            ]),
+          ),
+          Expanded(
+            child: _isLoading ? const Center(child: CircularProgressIndicator())
+                : _decryptedCards.isEmpty
+                    ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(color: theme.colorScheme.primary.withValues(alpha: 0.1), shape: BoxShape.circle),
+                          child: Icon(Icons.credit_card_outlined, size: 48, color: theme.colorScheme.primary),
+                        ),
+                        const SizedBox(height: 20),
+                        Text('No cards yet', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 6),
+                        Text('Tap + to add your first card', style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                      ]))
+                    : ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
+                        itemCount: _decryptedCards.length,
+                        itemBuilder: (_, i) {
+                          final c = _cards[i];
+                          final cd = _decryptedCards[i];
+                          final color = _cardColor(cd['type']);
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: _CreditCardWidget(
+                              cardholderName: c.cardholderName,
+                              cardNumber: cd['number'] ?? '',
+                              expiryDate: cd['expiry'] ?? '',
+                              cardType: cd['type'] ?? 'Other',
+                              color: color,
+                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CardFormScreen(card: c))).then((_) => _loadCards()),
+                              onDelete: () async {
+                                final confirm = await showDialog<bool>(
+                                  context: context,
+                                  builder: (ctx) => AlertDialog(
+                                    title: const Text('Delete Card'),
+                                    content: Text('Delete "${c.cardholderName}"?'),
+                                    actions: [
+                                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                                      TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete', style: TextStyle(color: Colors.red))),
+                                    ],
+                                  ),
+                                );
+                                if (confirm == true) {
+                                  await _supabase.from('cards').delete().eq('id', c.id);
+                                  _loadCards();
+                                }
+                              },
+                            ),
+                          );
+                        },
                       ),
-                      const SizedBox(height: 20),
-                      Text('No cards yet', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 6),
-                      Text('Tap + to add your first card', style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-                    ]))
-                  : ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
-                      itemCount: _decryptedCards.length,
-                      itemBuilder: (_, i) {
-                        final c = _cards[i];
-                        final cd = _decryptedCards[i];
-                        final color = _cardColor(cd['type']);
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 16),
-                          child: _CreditCardWidget(
-                            cardholderName: c.cardholderName,
-                            cardNumber: cd['number'] ?? '',
-                            expiryDate: cd['expiry'] ?? '',
-                            cardType: cd['type'] ?? 'Other',
-                            color: color,
-                            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CardFormScreen(card: c))).then((_) => _loadCards()),
-                            onDelete: () async {
-                              final confirm = await showDialog<bool>(
-                                context: context,
-                                builder: (ctx) => AlertDialog(
-                                  title: const Text('Delete Card'),
-                                  content: Text('Delete "${c.cardholderName}"?'),
-                                  actions: [
-                                    TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-                                    TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete', style: TextStyle(color: Colors.red))),
-                                  ],
-                                ),
-                              );
-                              if (confirm == true) {
-                                await _supabase.from('cards').delete().eq('id', c.id);
-                                _loadCards();
-                              }
-                            },
-                          ),
-                        );
-                      },
-                    ),
-        ),
-      ],
+          ),
+        ],
+      ),
     );
   }
 }
