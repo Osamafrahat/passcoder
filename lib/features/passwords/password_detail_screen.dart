@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/password_model.dart';
 import '../../core/encryption/encryption_service.dart';
@@ -76,6 +77,14 @@ class _PasswordDetailScreenState extends State<PasswordDetailScreen> {
     });
   }
 
+  Future<void> _sharePassword() async {
+    final p = widget.password;
+    await Share.share(
+      '${p.title}\nUsername: ${p.username ?? ''}\nPassword: ${_decryptedPassword ?? ''}${p.url != null && p.url!.isNotEmpty ? '\nURL: ${p.url}' : ''}',
+      subject: 'Shared password: ${p.title}',
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -97,6 +106,11 @@ class _PasswordDetailScreenState extends State<PasswordDetailScreen> {
                   const Spacer(),
                   Text(p.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 18)),
                   const Spacer(),
+                  IconButton(
+                    onPressed: _sharePassword,
+                    icon: const Icon(Icons.share_outlined, color: Colors.white),
+                    tooltip: 'Share',
+                  ),
                   IconButton(
                     onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PasswordFormScreen(password: p))).then((_) => Navigator.pop(context)),
                     icon: const Icon(Icons.edit_outlined, color: Colors.white),

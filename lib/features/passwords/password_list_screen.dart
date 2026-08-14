@@ -61,6 +61,19 @@ class _PasswordListScreenState extends State<PasswordListScreen> {
     } catch (_) {}
   }
 
+  Future<void> _reorderPasswords(int oldIndex, int newIndex) async {
+    if (newIndex > oldIndex) newIndex -= 1;
+    setState(() {
+      final item = _passwords.removeAt(oldIndex);
+      _passwords.insert(newIndex, item);
+    });
+    try {
+      for (var i = 0; i < _passwords.length; i++) {
+        await _supabase.from('passwords').update({'sort_order': i}).eq('id', _passwords[i].id);
+      }
+    } catch (_) {}
+  }
+
   Future<void> _quickCopy(String text, String label) async {
     await Clipboard.setData(ClipboardData(text: text));
     if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -195,12 +208,26 @@ class _PasswordListScreenState extends State<PasswordListScreen> {
                       ]))
                     : RefreshIndicator(
                       onRefresh: _loadPasswords,
-                      child: ListView.builder(
+                      child: ReorderableListView.builder(
                           padding: const EdgeInsets.fromLTRB(20, 12, 20, 100),
                           itemCount: _filtered.length,
+                          onReorder: (oldIndex, newIndex) {
+                            final item = _filtered[oldIndex];
+                            setState(() {
+                              _passwords.removeWhere((p) => p.id == item.id);
+                              if (newIndex > oldIndex) newIndex -= 1;
+                              final insertAt = newIndex < _passwords.length ? newIndex : _passwords.length;
+                              _passwords.insert(insertAt, item);
+                            });
+                            _reorderPasswords(oldIndex, newIndex);
+                          },
+                          buildDefaultDragHandles: false,
                           itemBuilder: (_, i) {
                             final p = _filtered[i];
-                            return _PasswordCard(
+                            return Padding(
+                              key: ValueKey(p.id),
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: _PasswordCard(
                               password: p,
                               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PasswordDetailScreen(password: p))).then((_) => _loadPasswords()),
                               onFavorite: () => _toggleFavorite(p),
@@ -213,6 +240,7 @@ class _PasswordListScreenState extends State<PasswordListScreen> {
                                 }
                               },
                               onDelete: () => _softDelete(p),
+                              ),
                             );
                           },
                         ),
