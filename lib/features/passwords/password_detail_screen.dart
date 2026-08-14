@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/password_model.dart';
 import '../../core/encryption/encryption_service.dart';
+import 'password_form_screen.dart';
 
 class PasswordDetailScreen extends StatefulWidget {
   final PasswordModel password;
@@ -49,7 +51,32 @@ class _PasswordDetailScreenState extends State<PasswordDetailScreen> {
                   const Spacer(),
                   Text(p.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 18)),
                   const Spacer(),
-                  const SizedBox(width: 48),
+                  IconButton(
+                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PasswordFormScreen(password: p))).then((_) => Navigator.pop(context)),
+                    icon: const Icon(Icons.edit_outlined, color: Colors.white),
+                    tooltip: 'Edit',
+                  ),
+                  IconButton(
+                    onPressed: () async {
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('Delete Password'),
+                          content: Text('Delete "${p.title}"?'),
+                          actions: [
+                            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                            TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete', style: TextStyle(color: Colors.red))),
+                          ],
+                        ),
+                      );
+                      if (confirm == true) {
+                        await Supabase.instance.client.from('passwords').delete().eq('id', p.id);
+                        if (context.mounted) Navigator.pop(context);
+                      }
+                    },
+                    icon: const Icon(Icons.delete_outline, color: Colors.white),
+                    tooltip: 'Delete',
+                  ),
                 ]),
               ),
               const SizedBox(height: 10),

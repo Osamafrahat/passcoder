@@ -43,72 +43,80 @@ class _PasswordListScreenState extends State<PasswordListScreen> {
     final theme = Theme.of(context);
     final categories = ['All', ...{..._passwords.map((p) => p.category)}];
 
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('My Passwords', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 14),
-              TextField(
-                onChanged: (v) => setState(() => _searchQuery = v),
-                decoration: InputDecoration(hintText: 'Search passwords...', prefixIcon: const Icon(Icons.search, size: 22),
-                  filled: true, fillColor: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+    return Scaffold(
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PasswordFormScreen())).then((_) => _loadPasswords()),
+        icon: const Icon(Icons.add),
+        label: const Text('Add Password'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+      body: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('My Passwords', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 14),
+                TextField(
+                  onChanged: (v) => setState(() => _searchQuery = v),
+                  decoration: InputDecoration(hintText: 'Search passwords...', prefixIcon: const Icon(Icons.search, size: 22),
+                    filled: true, fillColor: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                height: 36,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal, itemCount: categories.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
-                  itemBuilder: (_, i) {
-                    final c = categories[i];
-                    final selected = _selectedCategory == c;
-                    return FilterChip(label: Text(c, style: TextStyle(fontSize: 13, color: selected ? Colors.white : theme.colorScheme.onSurface)),
-                      selected: selected, onSelected: (_) => setState(() => _selectedCategory = c),
-                      selectedColor: theme.colorScheme.primary, backgroundColor: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      side: BorderSide.none, padding: const EdgeInsets.symmetric(horizontal: 4),
-                    );
-                  },
+                const SizedBox(height: 12),
+                SizedBox(
+                  height: 36,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal, itemCount: categories.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    itemBuilder: (_, i) {
+                      final c = categories[i];
+                      final selected = _selectedCategory == c;
+                      return FilterChip(label: Text(c, style: TextStyle(fontSize: 13, color: selected ? Colors.white : theme.colorScheme.onSurface)),
+                        selected: selected, onSelected: (_) => setState(() => _selectedCategory = c),
+                        selectedColor: theme.colorScheme.primary, backgroundColor: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        side: BorderSide.none, padding: const EdgeInsets.symmetric(horizontal: 4),
+                      );
+                    },
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-        Expanded(
-          child: _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : _filtered.isEmpty
-                  ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                      Icon(Icons.lock_open_outlined, size: 64, color: theme.colorScheme.onSurfaceVariant.withOpacity(0.4)),
-                      const SizedBox(height: 16),
-                      Text('No passwords yet', style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-                      const SizedBox(height: 6),
-                      Text('Tap + to add your first password', style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant.withOpacity(0.6))),
-                    ]))
-                  : ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 100),
-                      itemCount: _filtered.length,
-                      itemBuilder: (_, i) {
-                        final p = _filtered[i];
-                        return _PasswordCard(
-                          password: p,
-                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PasswordDetailScreen(password: p))).then((_) => _loadPasswords()),
-                          onDelete: () async {
-                            await _supabase.from('passwords').delete().eq('id', p.id);
-                            _loadPasswords();
-                          },
-                        );
-                      },
-                    ),
-        ),
-      ],
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _filtered.isEmpty
+                    ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                        Icon(Icons.lock_open_outlined, size: 64, color: theme.colorScheme.onSurfaceVariant.withOpacity(0.4)),
+                        const SizedBox(height: 16),
+                        Text('No passwords yet', style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                        const SizedBox(height: 6),
+                        Text('Tap + to add your first password', style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant.withOpacity(0.6))),
+                      ]))
+                    : ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(20, 12, 20, 100),
+                        itemCount: _filtered.length,
+                        itemBuilder: (_, i) {
+                          final p = _filtered[i];
+                          return _PasswordCard(
+                            password: p,
+                            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PasswordDetailScreen(password: p))).then((_) => _loadPasswords()),
+                            onDelete: () async {
+                              await _supabase.from('passwords').delete().eq('id', p.id);
+                              _loadPasswords();
+                            },
+                          );
+                        },
+                      ),
+          ),
+        ],
+      ),
     );
   }
 }

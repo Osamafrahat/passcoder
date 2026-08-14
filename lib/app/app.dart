@@ -85,7 +85,43 @@ class _HomeScreenState extends State<HomeScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      body: AnimatedSwitcher(duration: const Duration(milliseconds: 300), child: _screens[_currentIndex]),
+      body: Stack(
+        children: [
+          AnimatedSwitcher(duration: const Duration(milliseconds: 300), child: _screens[_currentIndex]),
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 8,
+            right: 16,
+            child: Material(
+              color: theme.colorScheme.surface.withOpacity(0.9),
+              borderRadius: BorderRadius.circular(12),
+              elevation: 2,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: () async {
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text('Sign Out'),
+                      content: const Text('Are you sure you want to sign out?'),
+                      actions: [
+                        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                        TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Sign Out', style: TextStyle(color: Colors.red))),
+                      ],
+                    ),
+                  );
+                  if (confirm == true) {
+                    await Supabase.instance.client.auth.signOut();
+                  }
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Icon(Icons.logout_rounded, size: 20, color: theme.colorScheme.onSurfaceVariant),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, -5))],
