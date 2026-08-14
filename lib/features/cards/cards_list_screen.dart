@@ -28,7 +28,7 @@ class _CardsListScreenState extends State<CardsListScreen> {
       final userId = _supabase.auth.currentUser?.id;
       if (userId == null) return;
       final data = await _supabase.from('cards').select().eq('user_id', userId).order('created_at', ascending: false);
-      final cards = data.map((e) => CardModel.fromJson(e)).toList();
+      final cards = data.map((e) => CardModel.fromJson(e)).where((c) => !c.isTrashed).toList();
       final decrypted = <Map<String, String>>[];
       for (final c in cards) {
         String number = '', expiry = '';
@@ -52,6 +52,7 @@ class _CardsListScreenState extends State<CardsListScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final visibleCards = _decryptedCards.where((cd) => _searchQuery.isEmpty || cd['number']!.contains(_searchQuery.replaceAll(' ', '')) || cd['type']!.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -87,7 +88,7 @@ class _CardsListScreenState extends State<CardsListScreen> {
           ),
           Expanded(
             child: _isLoading ? const Center(child: CircularProgressIndicator())
-                : _decryptedCards.isEmpty
+                : visibleCards.isEmpty
                     ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                         Container(
                           padding: const EdgeInsets.all(20),
@@ -101,10 +102,10 @@ class _CardsListScreenState extends State<CardsListScreen> {
                       ]))
                     : ListView.builder(
                         padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
-                        itemCount: _decryptedCards.length,
+                        itemCount: visibleCards.length,
                         itemBuilder: (_, i) {
-                          final c = _cards[i];
-                          final cd = _decryptedCards[i];
+                          final c = _cards[_decryptedCards.indexOf(visibleCards[i])];
+                          final cd = visibleCards[i];
                           final color = _cardColor(cd['type']);
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 16),
@@ -128,7 +129,7 @@ class _CardsListScreenState extends State<CardsListScreen> {
                                   ),
                                 );
                                 if (confirm == true) {
-                                  await _supabase.from('cards').delete().eq('id', c.id);
+                                  await _supabase.from('cards').update({'deleted_at': DateTime.now().toIso8601String()}).eq('id', c.id);
                                   _loadCards();
                                 }
                               },

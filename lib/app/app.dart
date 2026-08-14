@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:local_auth/local_auth.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../features/auth/login_screen.dart';
@@ -10,12 +11,15 @@ import '../features/passwords/password_list_screen.dart';
 import '../features/notes/notes_list_screen.dart';
 import '../features/cards/cards_list_screen.dart';
 import '../features/generator/password_generator_screen.dart';
+import '../core/theme/theme_service.dart';
+import '../core/services/auto_lock_service.dart';
 
 class PassCoderApp extends StatelessWidget {
   const PassCoderApp({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final themeService = context.watch<ThemeService>();
     return MaterialApp(
       title: 'PassCoder',
       debugShowCheckedModeBanner: false,
@@ -30,7 +34,7 @@ class PassCoderApp extends StatelessWidget {
         textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
         useMaterial3: true,
       ),
-      themeMode: ThemeMode.system,
+      themeMode: themeService.themeMode,
       home: const AuthGate(),
       onGenerateRoute: (settings) {
         if (settings.name != null && settings.name!.startsWith('/?')) return MaterialPageRoute(builder: (_) => const AuthGate());
@@ -48,7 +52,7 @@ class AuthGate extends StatefulWidget {
   State<AuthGate> createState() => _AuthGateState();
 }
 
-class _AuthGateState extends State<AuthGate> {
+class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   final LocalAuthentication _localAuth = LocalAuthentication();
   final SupabaseClient _supabase = Supabase.instance.client;
 
@@ -57,19 +61,38 @@ class _AuthGateState extends State<AuthGate> {
   bool _biometricFailed = false;
   bool _pendingBiometric = false;
   bool _checked = false;
-  String _debugInfo = '';
   StreamSubscription<AuthState>? _authSubscription;
+  DateTime? _backgroundTime;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _listenAuth();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _authSubscription?.cancel();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final autoLock = context.read<AutoLockService>();
+    if (state == AppLifecycleState.paused) {
+      _backgroundTime = DateTime.now();
+    } else if (state == AppLifecycleState.resumed && _authenticated) {
+      if (_backgroundTime != null && autoLock.timeoutMinutes > 0) {
+        final elapsed = DateTime.now().difference(_backgroundTime!).inMinutes;
+        if (elapsed >= autoLock.timeoutMinutes) {
+          autoLock.lockNow();
+          setState(() { _authenticated = false; _biometricFailed = false; });
+        }
+      }
+      _backgroundTime = null;
+    }
   }
 
   void _listenAuth() {
@@ -83,12 +106,10 @@ class _AuthGateState extends State<AuthGate> {
       }
     });
 
-    // Check current session on launch
     final session = _supabase.auth.currentSession;
     if (session != null) {
       _handleSession(session);
     } else {
-      // No session yet, wait for stream. Show loading for 2s then show login
       Future.delayed(const Duration(seconds: 2), () {
         if (!_checked && mounted) {
           _checked = true;
@@ -124,7 +145,7 @@ class _AuthGateState extends State<AuthGate> {
       Future.delayed(const Duration(milliseconds: 500), _triggerBiometric);
     } else {
       debugPrint('SKIPPING biometric - going to home directly');
-      setState(() { _isLoading = false; _authenticated = true; _debugInfo = 'hasSaved=$hasSaved biometrics=$biometricsAvailable methods=$availableMethods'; });
+      setState(() { _isLoading = false; _authenticated = true; });
     }
   }
 
@@ -135,6 +156,7 @@ class _AuthGateState extends State<AuthGate> {
     debugPrint('biometricResult: $success');
     if (success) {
       setState(() { _authenticated = true; });
+      context.read<AutoLockService>().resetTimer();
     } else {
       setState(() { _authenticated = false; _biometricFailed = true; });
     }
@@ -165,9 +187,6 @@ class _AuthGateState extends State<AuthGate> {
 
   Future<bool> _authenticateWithBiometrics() async {
     try {
-      debugPrint('=== AUTH ATTEMPT ===');
-      debugPrint('canCheckBiometrics: ${await _localAuth.canCheckBiometrics}');
-      debugPrint('isDeviceSupported: ${await _localAuth.isDeviceSupported()}');
       final result = await _localAuth.authenticate(
         localizedReason: 'Authenticate to access PassCoder',
         options: const AuthenticationOptions(
@@ -176,11 +195,9 @@ class _AuthGateState extends State<AuthGate> {
           useErrorDialogs: true,
         ),
       );
-      debugPrint('authenticate result: $result');
       return result;
-    } catch (e, st) {
+    } catch (e) {
       debugPrint('authenticate ERROR: $e');
-      debugPrint('STACK: $st');
       return false;
     }
   }
@@ -208,15 +225,6 @@ class _AuthGateState extends State<AuthGate> {
               const CircularProgressIndicator(),
               const SizedBox(height: 16),
               const Text('Loading...'),
-              if (_debugInfo.isNotEmpty) ...[
-                const SizedBox(height: 24),
-                Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 32),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: Colors.orange, borderRadius: BorderRadius.circular(8)),
-                  child: Text(_debugInfo, style: const TextStyle(color: Colors.white, fontSize: 11)),
-                ),
-              ],
             ],
           ),
         ),
@@ -315,6 +323,12 @@ class _HomeScreenState extends State<HomeScreen> {
   final _titles = const ['Passwords', 'Notes', 'Cards', 'Generator'];
   final _icons = const [Icons.lock_outline, Icons.note_alt_outlined, Icons.credit_card_outlined, Icons.password_outlined];
   final _selectedIcons = const [Icons.lock, Icons.note_alt, Icons.credit_card, Icons.password];
+
+  @override
+  void initState() {
+    super.initState();
+    context.read<AutoLockService>().startTimer();
+  }
 
   void _onLogout() async {
     final confirm = await showDialog<bool>(

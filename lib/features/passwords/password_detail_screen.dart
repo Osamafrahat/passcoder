@@ -15,12 +15,24 @@ class PasswordDetailScreen extends StatefulWidget {
 class _PasswordDetailScreenState extends State<PasswordDetailScreen> {
   final EncryptionService _encryptionService = EncryptionService();
   String? _decryptedPassword;
+  String? _decryptedTwoFactor;
   bool _isPasswordVisible = false;
+  bool _is2faVisible = false;
 
   @override
   void initState() {
     super.initState();
     _decryptPassword();
+    _decrypt2fa();
+  }
+
+  Future<void> _decrypt2fa() async {
+    final code = widget.password.twoFactorCode;
+    if (code == null || code.isEmpty) return;
+    try {
+      final decrypted = await _encryptionService.decryptData(code);
+      setState(() => _decryptedTwoFactor = decrypted);
+    } catch (_) {}
   }
 
   Future<void> _decryptPassword() async {
@@ -57,8 +69,11 @@ class _PasswordDetailScreenState extends State<PasswordDetailScreen> {
   void _copyToClipboard(String text, String label) {
     Clipboard.setData(ClipboardData(text: text));
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$label copied'), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+      SnackBar(content: Text('$label copied — auto-clears in 30s'), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
     );
+    Future.delayed(const Duration(seconds: 30), () async {
+      try { await Clipboard.setData(const ClipboardData(text: '')); } catch (_) {}
+    });
   }
 
   @override
@@ -101,7 +116,7 @@ class _PasswordDetailScreenState extends State<PasswordDetailScreen> {
                         ),
                       );
                       if (confirm == true) {
-                        await Supabase.instance.client.from('passwords').delete().eq('id', p.id);
+                        await Supabase.instance.client.from('passwords').update({'deleted_at': DateTime.now().toIso8601String()}).eq('id', p.id);
                   if (mounted) Navigator.pop(context);
                       }
                     },
@@ -154,6 +169,55 @@ class _PasswordDetailScreenState extends State<PasswordDetailScreen> {
                       if (p.notes != null && p.notes!.isNotEmpty) ...[
                         const SizedBox(height: 14),
                         _InfoTile(icon: Icons.notes, label: 'Notes', value: p.notes!),
+                      ],
+                      if (p.tags.isNotEmpty) ...[
+                        const SizedBox(height: 14),
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Row(children: [
+                              Icon(Icons.tag, size: 16, color: theme.colorScheme.onSurfaceVariant),
+                              const SizedBox(width: 6),
+                              Text('Tags', style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 13)),
+                            ]),
+                            const SizedBox(height: 10),
+                            Wrap(spacing: 6, runSpacing: 6, children: p.tags.map((t) => Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                              decoration: BoxDecoration(color: theme.colorScheme.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                              child: Text('#$t', style: TextStyle(color: theme.colorScheme.primary, fontSize: 12, fontWeight: FontWeight.w500)),
+                            )).toList()),
+                          ]),
+                        ),
+                      ],
+                      if (_decryptedTwoFactor != null) ...[
+                        const SizedBox(height: 14),
+                        _InfoTile(
+                          icon: Icons.pin_outlined, label: '2FA Backup Code',
+                          value: _is2faVisible ? _decryptedTwoFactor! : '•••• •••• ••••',
+                          isPassword: true, isVisible: _is2faVisible,
+                          onToggle: () => setState(() => _is2faVisible = !_is2faVisible),
+                          onCopy: () => _copyToClipboard(_decryptedTwoFactor!, '2FA code'),
+                        ),
+                      ],
+                      if (DateTime.now().difference(p.createdAt).inDays > 90) ...[
+                        const SizedBox(height: 14),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+                          ),
+                          child: Row(children: [
+                            const Icon(Icons.schedule, color: Colors.orange, size: 20),
+                            const SizedBox(width: 10),
+                            Expanded(child: Text('This password is over 90 days old. Consider changing it.', style: TextStyle(color: Colors.orange.shade700, fontSize: 13))),
+                          ]),
+                        ),
                       ],
                     ],
                   ),

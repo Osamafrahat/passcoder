@@ -5,6 +5,8 @@ import 'app/app.dart';
 import 'core/config/supabase_config.dart';
 import 'core/auth/auth_service.dart';
 import 'core/encryption/encryption_service.dart';
+import 'core/theme/theme_service.dart';
+import 'core/services/auto_lock_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,6 +21,8 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthService()),
         Provider(create: (_) => EncryptionService()),
+        ChangeNotifierProvider(create: (_) => ThemeService()),
+        ChangeNotifierProvider(create: (_) => AutoLockService()),
       ],
       child: const PassCoderApp(),
     ),

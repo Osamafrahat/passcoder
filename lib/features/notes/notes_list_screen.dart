@@ -28,7 +28,7 @@ class _NotesListScreenState extends State<NotesListScreen> {
       final userId = _supabase.auth.currentUser?.id;
       if (userId == null) return;
       final data = await _supabase.from('notes').select().eq('user_id', userId).order('created_at', ascending: false);
-      final notes = data.map((e) => NoteModel.fromJson(e)).toList();
+      final notes = data.map((e) => NoteModel.fromJson(e)).where((n) => !n.isTrashed).toList();
       final decrypted = <Map<String, String>>[];
       for (final n in notes) {
         String content = '';
@@ -43,6 +43,7 @@ class _NotesListScreenState extends State<NotesListScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final noteColors = [Colors.blue, Colors.green, Colors.orange, Colors.purple, Colors.teal, Colors.pink];
+    final visibleNotes = _decryptedNotes.where((nd) => _searchQuery.isEmpty || nd['title']!.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -78,7 +79,7 @@ class _NotesListScreenState extends State<NotesListScreen> {
           ),
           Expanded(
             child: _isLoading ? const Center(child: CircularProgressIndicator())
-                : _decryptedNotes.isEmpty
+                : visibleNotes.isEmpty
                     ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                         Container(
                           padding: const EdgeInsets.all(20),
@@ -93,9 +94,9 @@ class _NotesListScreenState extends State<NotesListScreen> {
                     : GridView.builder(
                         padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
                         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 0.85),
-                        itemCount: _decryptedNotes.length,
+                        itemCount: visibleNotes.length,
                         itemBuilder: (_, i) {
-                          final nd = _decryptedNotes[i];
+                          final nd = visibleNotes[i];
                           final n = _notes[i];
                           final color = noteColors[i % noteColors.length];
                           return Material(
@@ -120,7 +121,7 @@ class _NotesListScreenState extends State<NotesListScreen> {
                                         PopupMenuItem(
                                           child: const Row(children: [Icon(Icons.delete_outline, size: 18, color: Colors.red), SizedBox(width: 8), Text('Delete', style: TextStyle(color: Colors.red))]),
                                           onTap: () async {
-                                            await _supabase.from('notes').delete().eq('id', n.id);
+                                            await _supabase.from('notes').update({'deleted_at': DateTime.now().toIso8601String()}).eq('id', n.id);
                                             _loadNotes();
                                           },
                                         ),

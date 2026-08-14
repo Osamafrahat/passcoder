@@ -8,6 +8,9 @@ class PasswordModel {
   final String? notes;
   final String category;
   final bool isFavorite;
+  final List<String> tags;
+  final String? twoFactorCode;
+  final DateTime? deletedAt;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -21,9 +24,14 @@ class PasswordModel {
     this.notes,
     this.category = 'General',
     this.isFavorite = false,
+    this.tags = const [],
+    this.twoFactorCode,
+    this.deletedAt,
     required this.createdAt,
     required this.updatedAt,
   });
+
+  bool get isTrashed => deletedAt != null;
 
   factory PasswordModel.fromJson(Map<String, dynamic> json) {
     return PasswordModel(
@@ -36,6 +44,9 @@ class PasswordModel {
       notes: json['notes'] as String?,
       category: json['category'] as String? ?? 'General',
       isFavorite: json['is_favorite'] as bool? ?? false,
+      tags: (json['tags'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? const [],
+      twoFactorCode: json['two_factor_code'] as String?,
+      deletedAt: json['deleted_at'] != null ? DateTime.parse(json['deleted_at'] as String) : null,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
     );
@@ -52,6 +63,9 @@ class PasswordModel {
       'notes': notes,
       'category': category,
       'is_favorite': isFavorite,
+      'tags': tags,
+      'two_factor_code': twoFactorCode,
+      'deleted_at': deletedAt?.toIso8601String(),
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };

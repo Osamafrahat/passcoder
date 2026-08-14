@@ -18,6 +18,8 @@ class _PasswordFormScreenState extends State<PasswordFormScreen> {
   final _passwordController = TextEditingController();
   final _urlController = TextEditingController();
   final _notesController = TextEditingController();
+  final _tagsController = TextEditingController();
+  final _twoFactorController = TextEditingController();
   final _encryptionService = EncryptionService();
   final _supabase = Supabase.instance.client;
   String _category = 'Personal';
@@ -34,8 +36,12 @@ class _PasswordFormScreenState extends State<PasswordFormScreen> {
       _usernameController.text = widget.password!.username ?? '';
       _urlController.text = widget.password!.url ?? '';
       _notesController.text = widget.password!.notes ?? '';
+      _tagsController.text = widget.password!.tags.join(', ');
       _category = widget.password!.category;
       _loadPassword();
+      if (widget.password!.twoFactorCode != null) {
+        _loadTwoFactor();
+      }
     }
   }
 
@@ -43,6 +49,13 @@ class _PasswordFormScreenState extends State<PasswordFormScreen> {
     try {
       final decrypted = await _encryptionService.decryptData(widget.password!.passwordEncrypted);
       _passwordController.text = decrypted;
+    } catch (e) {}
+  }
+
+  Future<void> _loadTwoFactor() async {
+    try {
+      final decrypted = await _encryptionService.decryptData(widget.password!.twoFactorCode!);
+      _twoFactorController.text = decrypted;
     } catch (e) {}
   }
 
@@ -60,11 +73,18 @@ class _PasswordFormScreenState extends State<PasswordFormScreen> {
       final userId = _supabase.auth.currentUser?.id;
       if (userId == null) return;
       final encrypted = await _encryptionService.encryptData(_passwordController.text);
+      String? encryptedTwoFactor;
+      if (_twoFactorController.text.trim().isNotEmpty) {
+        encryptedTwoFactor = await _encryptionService.encryptData(_twoFactorController.text.trim());
+      }
+      final tags = _tagsController.text.split(',').map((t) => t.trim()).where((t) => t.isNotEmpty).toList();
       final data = {
         'user_id': userId, 'title': _titleController.text, 'username': _usernameController.text,
         'password_encrypted': encrypted, 'category': _category,
         'url': _urlController.text.isEmpty ? null : _urlController.text,
         'notes': _notesController.text.isEmpty ? null : _notesController.text,
+        'tags': tags,
+        'two_factor_code': encryptedTwoFactor,
       };
       if (widget.password != null) {
         await _supabase.from('passwords').update(data).eq('id', widget.password!.id);
@@ -112,6 +132,18 @@ class _PasswordFormScreenState extends State<PasswordFormScreen> {
             _buildField(_urlController, 'Website URL (optional)', Icons.link_outlined),
             const SizedBox(height: 16),
             _buildField(_notesController, 'Notes (optional)', Icons.notes_outlined, maxLines: 3),
+            const SizedBox(height: 16),
+            _buildField(_tagsController, 'Tags (comma separated, optional)', Icons.tag),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _twoFactorController,
+              obscureText: true,
+              decoration: InputDecoration(
+                labelText: '2FA Backup Code (optional)', prefixIcon: const Icon(Icons.pin_outlined),
+                filled: true, fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+              ),
+            ),
             const SizedBox(height: 20),
             Text('Category', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
             const SizedBox(height: 10),
