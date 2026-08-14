@@ -33,6 +33,7 @@ class _CardFormScreenState extends State<CardFormScreen> {
       _loadEncryptedFields();
     }
     _numberController.addListener(_detectCardType);
+    _expiryController.addListener(_formatExpiry);
   }
 
   Future<void> _loadEncryptedFields() async {
@@ -48,6 +49,25 @@ class _CardFormScreenState extends State<CardFormScreen> {
     else if (num.startsWith('5') || num.startsWith('2')) type = 'Mastercard';
     else if (num.startsWith('3')) type = 'Amex';
     if (type != _cardType) setState(() => _cardType = type);
+  }
+
+  void _formatExpiry() {
+    final text = _expiryController.text;
+    final digits = text.replaceAll(RegExp(r'\D'), '');
+    if (digits.length > 4) {
+      _expiryController.text = digits.substring(0, 4);
+      return;
+    }
+    String formatted = digits;
+    if (digits.length >= 2) {
+      formatted = '${digits.substring(0, 2)}/${digits.substring(2)}';
+    }
+    if (formatted != text) {
+      _expiryController.removeListener(_formatExpiry);
+      _expiryController.text = formatted;
+      _expiryController.selection = TextSelection.fromPosition(TextPosition(offset: formatted.length));
+      _expiryController.addListener(_formatExpiry);
+    }
   }
 
   Future<void> _save() async {
@@ -103,14 +123,15 @@ class _CardFormScreenState extends State<CardFormScreen> {
           children: [
             _buildField(_nameController, 'Cardholder Name', Icons.person_outline),
             const SizedBox(height: 16),
-            _buildField(_numberController, 'Card Number', Icons.credit_card, keyboard: TextInputType.number, maxLength: 19),
+            _buildField(_numberController, 'Card Number', Icons.credit_card, keyboard: TextInputType.number, maxLength: 16),
             const SizedBox(height: 16),
             Row(children: [
               Expanded(child: _buildField(_expiryController, 'MM/YY', Icons.calendar_today, keyboard: TextInputType.datetime, maxLength: 5)),
               const SizedBox(width: 16),
               Expanded(child: TextFormField(
                 controller: _cvvController, obscureText: _obscureCvv,
-                maxLength: 4,
+                maxLength: 3,
+                keyboardType: TextInputType.number,
                 decoration: InputDecoration(labelText: 'CVV', prefixIcon: const Icon(Icons.lock_outlined),
                   counterText: '',
                   filled: true, fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
