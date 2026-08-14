@@ -60,33 +60,40 @@ class _NoteFormScreenState extends State<NoteFormScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isEditing = widget.note != null;
+
     return Scaffold(
-      appBar: AppBar(title: Text(widget.note != null ? 'Edit Note' : 'New Note'), centerTitle: true),
+      appBar: AppBar(
+        title: Text(isEditing ? 'Edit Note' : 'New Note'),
+        centerTitle: true,
+        actions: [
+          TextButton(
+            onPressed: _isLoading ? null : _save,
+            child: _isLoading
+                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                : Text('Save', style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
           TextField(
             controller: _titleController,
-            decoration: InputDecoration(hintText: 'Title', prefixIcon: const Icon(Icons.title),
-              filled: true, fillColor: theme.colorScheme.surfaceContainerHighest.withOpacity(0.4),
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+            decoration: InputDecoration(hintText: 'Note title',
+              filled: true, fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
             ),
           ),
           const SizedBox(height: 16),
           TextField(
-            controller: _contentController, maxLines: 12,
+            controller: _contentController, maxLines: null, minLines: 12,
             decoration: InputDecoration(hintText: 'Write your note...', alignLabelWithHint: true,
-              filled: true, fillColor: theme.colorScheme.surfaceContainerHighest.withOpacity(0.4),
+              filled: true, fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+              contentPadding: const EdgeInsets.all(18),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
-            ),
-          ),
-          const SizedBox(height: 28),
-          SizedBox(
-            height: 54,
-            child: ElevatedButton(
-              onPressed: _isLoading ? null : _save,
-              style: ElevatedButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
-              child: _isLoading ? const CircularProgressIndicator() : const Text('Save', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
             ),
           ),
         ],

@@ -103,7 +103,7 @@ class _PasswordFormScreenState extends State<PasswordFormScreen> {
                   IconButton(icon: const Icon(Icons.casino_outlined, size: 20), onPressed: _generatePassword, tooltip: 'Generate'),
                   IconButton(icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined, size: 20), onPressed: () => setState(() => _obscure = !_obscure)),
                 ]),
-                filled: true, fillColor: theme.colorScheme.surfaceContainerHighest.withOpacity(0.4),
+                filled: true, fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
               ),
               validator: (v) => v == null || v.isEmpty ? 'Required' : null,
@@ -120,7 +120,7 @@ class _PasswordFormScreenState extends State<PasswordFormScreen> {
               children: _categories.map((c) {
                 final selected = _category == c;
                 return ChoiceChip(label: Text(c), selected: selected, onSelected: (_) => setState(() => _category = c),
-                  selectedColor: theme.colorScheme.primary, backgroundColor: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                  selectedColor: theme.colorScheme.primary, backgroundColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                   labelStyle: TextStyle(color: selected ? Colors.white : theme.colorScheme.onSurface, fontSize: 13),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 );
@@ -146,7 +146,7 @@ class _PasswordFormScreenState extends State<PasswordFormScreen> {
       controller: c, maxLines: maxLines,
       decoration: InputDecoration(
         labelText: label, prefixIcon: Icon(icon),
-        filled: true, fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.4),
+        filled: true, fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
       ),
       validator: (v) {

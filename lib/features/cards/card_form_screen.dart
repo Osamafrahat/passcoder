@@ -36,15 +36,9 @@ class _CardFormScreenState extends State<CardFormScreen> {
   }
 
   Future<void> _loadEncryptedFields() async {
-    try {
-      _numberController.text = await _encryptionService.decryptData(widget.card!.cardNumberEncrypted);
-    } catch (_) {}
-    try {
-      _expiryController.text = await _encryptionService.decryptData(widget.card!.expiryDateEncrypted);
-    } catch (_) {}
-    try {
-      _cvvController.text = await _encryptionService.decryptData(widget.card!.cvvEncrypted);
-    } catch (_) {}
+    try { _numberController.text = await _encryptionService.decryptData(widget.card!.cardNumberEncrypted); } catch (_) {}
+    try { _expiryController.text = await _encryptionService.decryptData(widget.card!.expiryDateEncrypted); } catch (_) {}
+    try { _cvvController.text = await _encryptionService.decryptData(widget.card!.cvvEncrypted); } catch (_) {}
   }
 
   void _detectCardType() {
@@ -88,8 +82,10 @@ class _CardFormScreenState extends State<CardFormScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isEditing = widget.card != null;
+
     return Scaffold(
-      appBar: AppBar(title: Text(widget.card != null ? 'Edit Card' : 'New Card'), centerTitle: true),
+      appBar: AppBar(title: Text(isEditing ? 'Edit Card' : 'New Card'), centerTitle: true),
       body: Form(
         key: _formKey,
         child: ListView(
@@ -107,7 +103,7 @@ class _CardFormScreenState extends State<CardFormScreen> {
                 maxLength: 4,
                 decoration: InputDecoration(labelText: 'CVV', prefixIcon: const Icon(Icons.lock_outlined),
                   counterText: '',
-                  filled: true, fillColor: theme.colorScheme.surfaceContainerHighest.withOpacity(0.4),
+                  filled: true, fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
                   suffixIcon: IconButton(icon: Icon(_obscureCvv ? Icons.visibility_outlined : Icons.visibility_off_outlined, size: 20), onPressed: () => setState(() => _obscureCvv = !_obscureCvv)),
                 ),
@@ -133,7 +129,7 @@ class _CardFormScreenState extends State<CardFormScreen> {
               child: ElevatedButton(
                 onPressed: _isLoading ? null : _save,
                 style: ElevatedButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
-                child: _isLoading ? const CircularProgressIndicator() : const Text('Save', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                child: _isLoading ? const CircularProgressIndicator() : Text(isEditing ? 'Update' : 'Save', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
               ),
             ),
           ],
@@ -146,7 +142,7 @@ class _CardFormScreenState extends State<CardFormScreen> {
     return TextFormField(
       controller: c, keyboardType: keyboard, maxLength: maxLength,
       decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon), counterText: '',
-        filled: true, fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.4),
+        filled: true, fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
       ),
       validator: (v) => v == null || v.isEmpty ? 'Required' : null,

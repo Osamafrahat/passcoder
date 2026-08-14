@@ -30,6 +30,13 @@ class _PasswordDetailScreenState extends State<PasswordDetailScreen> {
     } catch (e) { setState(() => _decryptedPassword = 'Error decrypting'); }
   }
 
+  void _copyToClipboard(String text, String label) {
+    Clipboard.setData(ClipboardData(text: text));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$label copied'), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -38,7 +45,7 @@ class _PasswordDetailScreenState extends State<PasswordDetailScreen> {
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [
-          theme.colorScheme.primary, theme.colorScheme.primary.withOpacity(0.6), theme.colorScheme.surface,
+          theme.colorScheme.primary, theme.colorScheme.primary.withValues(alpha: 0.6), theme.colorScheme.surface,
         ])),
         child: SafeArea(
           bottom: false,
@@ -80,45 +87,52 @@ class _PasswordDetailScreenState extends State<PasswordDetailScreen> {
                 ]),
               ),
               const SizedBox(height: 10),
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 20),
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(color: theme.colorScheme.surface, borderRadius: const BorderRadius.vertical(top: Radius.circular(28))),
-                child: Column(
-                  children: [
-                    Container(width: 64, height: 64, decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(20),
-                    ), child: Icon(Icons.lock_outline, color: theme.colorScheme.primary, size: 30)),
-                    const SizedBox(height: 16),
-                    Text(p.title, style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                      decoration: BoxDecoration(color: theme.colorScheme.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
-                      child: Text(p.category, style: TextStyle(color: theme.colorScheme.primary, fontSize: 13, fontWeight: FontWeight.w500)),
-                    ),
-                    const SizedBox(height: 28),
-                    _InfoTile(icon: Icons.person_outline, label: 'Username', value: p.username ?? ''),
-                    const SizedBox(height: 16),
-                    _InfoTile(
-                      icon: Icons.lock_outline, label: 'Password',
-                      value: _isPasswordVisible ? (_decryptedPassword ?? '...') : '••••••••',
-                      isPassword: true, isVisible: _isPasswordVisible,
-                      onToggle: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
-                      onCopy: () {
-                        Clipboard.setData(ClipboardData(text: _decryptedPassword ?? ''));
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Password copied'), behavior: SnackBarBehavior.floating));
-                      },
-                    ),
-                    if (p.url != null && p.url!.isNotEmpty) ...[
-                      const SizedBox(height: 16),
-                      _InfoTile(icon: Icons.link, label: 'Website', value: p.url!),
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(color: theme.colorScheme.surface, borderRadius: const BorderRadius.vertical(top: Radius.circular(28))),
+                  child: ListView(
+                    padding: const EdgeInsets.all(24),
+                    children: [
+                      Center(child: Container(
+                        width: 72, height: 72,
+                        decoration: BoxDecoration(color: theme.colorScheme.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(22)),
+                        child: Icon(Icons.lock_outline, color: theme.colorScheme.primary, size: 32),
+                      )),
+                      const SizedBox(height: 20),
+                      Center(child: Text(p.title, style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold))),
+                      const SizedBox(height: 8),
+                      Center(child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        decoration: BoxDecoration(color: theme.colorScheme.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
+                        child: Text(p.category, style: TextStyle(color: theme.colorScheme.primary, fontSize: 13, fontWeight: FontWeight.w500)),
+                      )),
+                      const SizedBox(height: 28),
+                      _InfoTile(
+                        icon: Icons.person_outline, label: 'Username', value: p.username ?? '',
+                        onCopy: () => _copyToClipboard(p.username ?? '', 'Username'),
+                      ),
+                      const SizedBox(height: 14),
+                      _InfoTile(
+                        icon: Icons.lock_outline, label: 'Password',
+                        value: _isPasswordVisible ? (_decryptedPassword ?? '...') : '••••••••',
+                        isPassword: true, isVisible: _isPasswordVisible,
+                        onToggle: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
+                        onCopy: () => _copyToClipboard(_decryptedPassword ?? '', 'Password'),
+                      ),
+                      if (p.url != null && p.url!.isNotEmpty) ...[
+                        const SizedBox(height: 14),
+                        _InfoTile(
+                          icon: Icons.link, label: 'Website', value: p.url!,
+                          onCopy: () => _copyToClipboard(p.url!, 'URL'),
+                        ),
+                      ],
+                      if (p.notes != null && p.notes!.isNotEmpty) ...[
+                        const SizedBox(height: 14),
+                        _InfoTile(icon: Icons.notes, label: 'Notes', value: p.notes!),
+                      ],
                     ],
-                    if (p.notes != null && p.notes!.isNotEmpty) ...[
-                      const SizedBox(height: 16),
-                      _InfoTile(icon: Icons.notes, label: 'Notes', value: p.notes!),
-                    ],
-                  ],
+                  ),
                 ),
               ),
             ],
@@ -146,7 +160,7 @@ class _InfoTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.4),
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
