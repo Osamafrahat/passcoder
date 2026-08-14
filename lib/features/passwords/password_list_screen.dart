@@ -5,7 +5,8 @@ import 'password_form_screen.dart';
 import 'password_detail_screen.dart';
 
 class PasswordListScreen extends StatefulWidget {
-  const PasswordListScreen({super.key});
+  final VoidCallback? onLogout;
+  const PasswordListScreen({super.key, this.onLogout});
   @override
   State<PasswordListScreen> createState() => _PasswordListScreenState();
 }
@@ -41,6 +42,16 @@ class _PasswordListScreenState extends State<PasswordListScreen> {
     final categories = ['All', ...{..._passwords.map((p) => p.category)}];
 
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('My Passwords'),
+        actions: [
+          if (widget.onLogout != null)
+            IconButton(
+              icon: const Icon(Icons.logout_rounded),
+              onPressed: widget.onLogout,
+            ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'fab_passwords',
         onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PasswordFormScreen())).then((_) => _loadPasswords()),
@@ -51,12 +62,10 @@ class _PasswordListScreenState extends State<PasswordListScreen> {
       body: Column(
         children: [
           Container(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('My Passwords', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 14),
                 TextField(
                   onChanged: (v) => setState(() => _searchQuery = v),
                   decoration: InputDecoration(hintText: 'Search passwords...', prefixIcon: const Icon(Icons.search, size: 22),

@@ -5,7 +5,8 @@ import '../../core/encryption/encryption_service.dart';
 import 'note_form_screen.dart';
 
 class NotesListScreen extends StatefulWidget {
-  const NotesListScreen({super.key});
+  final VoidCallback? onLogout;
+  const NotesListScreen({super.key, this.onLogout});
   @override
   State<NotesListScreen> createState() => _NotesListScreenState();
 }
@@ -44,6 +45,16 @@ class _NotesListScreenState extends State<NotesListScreen> {
     final noteColors = [Colors.blue, Colors.green, Colors.orange, Colors.purple, Colors.teal, Colors.pink];
 
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('My Notes'),
+        actions: [
+          if (widget.onLogout != null)
+            IconButton(
+              icon: const Icon(Icons.logout_rounded),
+              onPressed: widget.onLogout,
+            ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'fab_notes',
         onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NoteFormScreen())).then((_) => _loadNotes()),
@@ -54,10 +65,8 @@ class _NotesListScreenState extends State<NotesListScreen> {
       body: Column(
         children: [
           Container(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('My Notes', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 14),
               TextField(
                 onChanged: (v) => setState(() => _searchQuery = v),
                 decoration: InputDecoration(hintText: 'Search notes...', prefixIcon: const Icon(Icons.search, size: 22),

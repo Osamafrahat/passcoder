@@ -346,34 +346,13 @@ class _HomeScreenState extends State<HomeScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      body: Stack(
+      body: IndexedStack(
+        index: _currentIndex,
         children: [
-          IndexedStack(
-            index: _currentIndex,
-            children: const [
-              PasswordListScreen(),
-              NotesListScreen(),
-              CardsListScreen(),
-              PasswordGeneratorScreen(),
-            ],
-          ),
-          Positioned(
-            top: MediaQuery.of(context).padding.top + 8,
-            right: 16,
-            child: Material(
-              color: theme.colorScheme.surface.withValues(alpha: 0.9),
-              borderRadius: BorderRadius.circular(12),
-              elevation: 2,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(12),
-                onTap: _onLogout,
-                child: Padding(
-                  padding: const EdgeInsets.all(10),
-                  child: Icon(Icons.logout_rounded, size: 20, color: theme.colorScheme.onSurfaceVariant),
-                ),
-              ),
-            ),
-          ),
+          PasswordListScreen(onLogout: _onLogout),
+          NotesListScreen(onLogout: _onLogout),
+          CardsListScreen(onLogout: _onLogout),
+          PasswordGeneratorScreen(onLogout: _onLogout),
         ],
       ),
       bottomNavigationBar: Container(

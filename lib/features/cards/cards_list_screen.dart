@@ -5,7 +5,8 @@ import '../../core/encryption/encryption_service.dart';
 import 'card_form_screen.dart';
 
 class CardsListScreen extends StatefulWidget {
-  const CardsListScreen({super.key});
+  final VoidCallback? onLogout;
+  const CardsListScreen({super.key, this.onLogout});
   @override
   State<CardsListScreen> createState() => _CardsListScreenState();
 }
@@ -53,6 +54,16 @@ class _CardsListScreenState extends State<CardsListScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('My Cards'),
+        actions: [
+          if (widget.onLogout != null)
+            IconButton(
+              icon: const Icon(Icons.logout_rounded),
+              onPressed: widget.onLogout,
+            ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'fab_cards',
         onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CardFormScreen())).then((_) => _loadCards()),
@@ -63,10 +74,8 @@ class _CardsListScreenState extends State<CardsListScreen> {
       body: Column(
         children: [
           Container(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('My Cards', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 14),
               TextField(
                 onChanged: (v) => setState(() => _searchQuery = v),
                 decoration: InputDecoration(hintText: 'Search cards...', prefixIcon: const Icon(Icons.search, size: 22),
