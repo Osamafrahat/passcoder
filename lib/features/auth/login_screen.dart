@@ -143,8 +143,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                       Text('Secure Password Manager', style: theme.textTheme.bodyLarge?.copyWith(color: Colors.white70)),
                       const SizedBox(height: 44),
                       _buildGlassCard(
-                        child: Column(
-                          children: [
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            children: [
                             _buildGoogleButton(),
                             const SizedBox(height: 16),
                             Row(children: [
@@ -172,8 +174,9 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                               )),
                             ],
                           ],
+                          ),
+                          ),
                         ),
-                      ),
                       const SizedBox(height: 20),
                       TextButton(
                         onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RegisterScreen())),
