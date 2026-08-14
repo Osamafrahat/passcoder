@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:provider/provider.dart';
 import '../../core/auth/auth_service.dart';
 import '../../app/app.dart';
@@ -33,6 +34,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
     try {
       final authService = context.read<AuthService>();
       await authService.signUp(email: _emailController.text.trim(), password: _passwordController.text);
+      // Save credentials directly for biometric login
+      const storage = FlutterSecureStorage(aOptions: AndroidOptions(encryptedSharedPreferences: true));
+      await storage.write(key: 'saved_email', value: _emailController.text.trim());
+      await storage.write(key: 'saved_password', value: _passwordController.text);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Account created! Check email for verification.'), backgroundColor: Colors.green, behavior: SnackBarBehavior.floating));
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AuthGate()));

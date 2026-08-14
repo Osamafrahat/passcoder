@@ -59,6 +59,7 @@ class _AuthGateState extends State<AuthGate> {
   bool _authenticated = false;
   bool _biometricFailed = false;
   bool _checked = false;
+  String _debugInfo = '';
   StreamSubscription<AuthState>? _authSubscription;
 
   @override
@@ -112,17 +113,24 @@ class _AuthGateState extends State<AuthGate> {
 
     final hasSaved = await _hasSavedCredentials();
     final biometricsAvailable = await _isBiometricsAvailable();
+    final availableMethods = await _localAuth.getAvailableBiometrics();
+
+    debugPrint('=== BIOMETRIC DEBUG ===');
+    debugPrint('hasSavedCredentials: $hasSaved');
+    debugPrint('biometricsAvailable: $biometricsAvailable');
+    debugPrint('availableMethods: $availableMethods');
 
     if (hasSaved && biometricsAvailable) {
-      // Show biometric prompt
       final success = await _authenticateWithBiometrics();
+      debugPrint('biometricResult: $success');
       if (success) {
         setState(() { _isLoading = false; _authenticated = true; });
       } else {
         setState(() { _isLoading = false; _authenticated = false; _biometricFailed = true; });
       }
     } else {
-      setState(() { _isLoading = false; _authenticated = true; });
+      debugPrint('SKIPPING biometric - going to home directly');
+      setState(() { _isLoading = false; _authenticated = true; _debugInfo = 'hasSaved=$hasSaved biometrics=$biometricsAvailable methods=$availableMethods'; });
     }
   }
 
@@ -175,14 +183,23 @@ class _AuthGateState extends State<AuthGate> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
+      return Scaffold(
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text('Loading...'),
+              const CircularProgressIndicator(),
+              const SizedBox(height: 16),
+              const Text('Loading...'),
+              if (_debugInfo.isNotEmpty) ...[
+                const SizedBox(height: 24),
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 32),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(color: Colors.orange, borderRadius: BorderRadius.circular(8)),
+                  child: Text(_debugInfo, style: const TextStyle(color: Colors.white, fontSize: 11)),
+                ),
+              ],
             ],
           ),
         ),

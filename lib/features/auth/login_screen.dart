@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:provider/provider.dart';
 import '../../core/auth/auth_service.dart';
 import '../../app/app.dart';
@@ -57,6 +58,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     try {
       final authService = context.read<AuthService>();
       await authService.signIn(email: _emailController.text.trim(), password: _passwordController.text);
+      // Save credentials directly for biometric login
+      const storage = FlutterSecureStorage(aOptions: AndroidOptions(encryptedSharedPreferences: true));
+      await storage.write(key: 'saved_email', value: _emailController.text.trim());
+      await storage.write(key: 'saved_password', value: _passwordController.text);
       if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AuthGate()));
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red, behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))));
