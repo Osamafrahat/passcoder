@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/auth/auth_service.dart';
+import '../../app/app.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -71,7 +72,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
       await authService.signInWithGoogle();
 
       if (mounted) {
-        Navigator.pushReplacementNamed(context, '/home');
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const AuthGate()),
+        );
       }
     } catch (e) {
       if (mounted) {

@@ -1,7 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/auth/auth_service.dart';
+import '../../app/app.dart';
+import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -57,7 +60,10 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (mounted) {
-        Navigator.pushReplacementNamed(context, '/home');
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const AuthGate()),
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -83,7 +89,10 @@ class _LoginScreenState extends State<LoginScreen> {
       await authService.signInWithGoogle();
 
       if (mounted) {
-        Navigator.pushReplacementNamed(context, '/home');
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const AuthGate()),
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -133,7 +142,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
       final response = await authService.signInWithBiometrics();
       if (response != null && mounted) {
-        Navigator.pushReplacementNamed(context, '/home');
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const AuthGate()),
+        );
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -299,7 +311,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 16),
                   TextButton(
                     onPressed: () {
-                      Navigator.pushNamed(context, '/register');
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                      );
                     },
                     child: const Text("Don't have an account? Sign Up"),
                   ),

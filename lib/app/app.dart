@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../core/auth/auth_service.dart';
 import '../features/auth/login_screen.dart';
 import '../features/auth/register_screen.dart';
 import '../features/passwords/password_list_screen.dart';
@@ -10,31 +8,8 @@ import '../features/notes/notes_list_screen.dart';
 import '../features/cards/cards_list_screen.dart';
 import '../features/generator/password_generator_screen.dart';
 
-class PassCoderApp extends StatefulWidget {
+class PassCoderApp extends StatelessWidget {
   const PassCoderApp({super.key});
-
-  @override
-  State<PassCoderApp> createState() => _PassCoderAppState();
-}
-
-class _PassCoderAppState extends State<PassCoderApp> {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _listenForAuthChanges();
-    });
-  }
-
-  void _listenForAuthChanges() {
-    final authService = context.read<AuthService>();
-    authService.authStateChanges.listen((data) {
-      final session = data.session;
-      if (session != null && mounted) {
-        Navigator.pushReplacementNamed(context, '/home');
-      }
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -62,17 +37,8 @@ class _PassCoderAppState extends State<PassCoderApp> {
       themeMode: ThemeMode.system,
       home: const AuthGate(),
       onGenerateRoute: (settings) {
-        if (settings.name == '/home') {
-          return MaterialPageRoute(builder: (_) => const HomeScreen());
-        }
-        if (settings.name == '/generator') {
-          return MaterialPageRoute(builder: (_) => const PasswordGeneratorScreen());
-        }
-        if (settings.name == '/login') {
-          return MaterialPageRoute(builder: (_) => const LoginScreen());
-        }
-        if (settings.name == '/register') {
-          return MaterialPageRoute(builder: (_) => const RegisterScreen());
+        if (settings.name != null && settings.name!.startsWith('/?')) {
+          return MaterialPageRoute(builder: (_) => const AuthGate());
         }
         return null;
       },
@@ -88,11 +54,14 @@ class AuthGate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final session = Supabase.instance.client.auth.currentSession;
+
+    if (session != null) {
+      return const HomeScreen();
+    }
+
     return StreamBuilder<AuthState>(
       stream: Supabase.instance.client.auth.onAuthStateChange,
-      initialData: Supabase.instance.client.currentSession != null
-          ? AuthState(Supabase.instance.client.currentSession, null)
-          : null,
       builder: (context, snapshot) {
         final session = snapshot.data?.session;
         if (session != null) {
@@ -181,10 +150,12 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           FilledButton(
             onPressed: () async {
-              final authService = context.read<AuthService>();
-              await authService.signOut();
+              await Supabase.instance.client.auth.signOut();
               if (context.mounted) {
-                Navigator.pushReplacementNamed(context, '/login');
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AuthGate()),
+                );
               }
             },
             child: const Text('Logout'),
