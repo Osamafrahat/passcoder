@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import '../../models/password_model.dart';
 import 'password_form_screen.dart';
 import 'password_detail_screen.dart';
 
 class PasswordListScreen extends StatefulWidget {
   const PasswordListScreen({super.key});
-
   @override
   State<PasswordListScreen> createState() => _PasswordListScreenState();
 }
@@ -19,16 +17,6 @@ class _PasswordListScreenState extends State<PasswordListScreen> {
   String _searchQuery = '';
   String _selectedCategory = 'All';
 
-  final List<String> _categories = [
-    'All',
-    'General',
-    'Social',
-    'Email',
-    'Banking',
-    'Shopping',
-    'Work',
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -36,262 +24,155 @@ class _PasswordListScreenState extends State<PasswordListScreen> {
   }
 
   Future<void> _loadPasswords() async {
-    setState(() => _isLoading = true);
-
     try {
       final userId = _supabase.auth.currentUser?.id;
       if (userId == null) return;
-
-      final response = await _supabase
-          .from('passwords')
-          .select()
-          .eq('user_id', userId)
-          .order('created_at', ascending: false);
-
-      setState(() {
-        _passwords = (response as List)
-            .map((json) => PasswordModel.fromJson(json))
-            .toList();
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() => _isLoading = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading passwords: $e')),
-        );
-      }
-    }
+      final data = await _supabase.from('passwords').select().eq('user_id', userId).order('created_at', ascending: false);
+      setState(() { _passwords = data.map((e) => PasswordModel.fromJson(e)).toList(); _isLoading = false; });
+    } catch (e) { setState(() => _isLoading = false); }
   }
 
-  List<PasswordModel> get _filteredPasswords {
-    return _passwords.where((password) {
-      final matchesSearch = password.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          (password.username?.toLowerCase().contains(_searchQuery.toLowerCase()) ?? false) ||
-          (password.url?.toLowerCase().contains(_searchQuery.toLowerCase()) ?? false);
-      final matchesCategory = _selectedCategory == 'All' || password.category == _selectedCategory;
-      return matchesSearch && matchesCategory;
-    }).toList();
-  }
-
-  Future<void> _deletePassword(String id) async {
-    try {
-      await _supabase.from('passwords').delete().eq('id', id);
-      _loadPasswords();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error deleting password: $e')),
-        );
-      }
-    }
-  }
+  List<PasswordModel> get _filtered => _passwords.where((p) {
+    final match = p.title.toLowerCase().contains(_searchQuery.toLowerCase()) || (p.username ?? '').toLowerCase().contains(_searchQuery.toLowerCase());
+    final cat = _selectedCategory == 'All' || p.category == _selectedCategory;
+    return match && cat;
+  }).toList();
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: TextField(
-              decoration: const InputDecoration(
-                hintText: 'Search passwords...',
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
+    final theme = Theme.of(context);
+    final categories = ['All', ...{..._passwords.map((p) => p.category)}];
+
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('My Passwords', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 14),
+              TextField(
+                onChanged: (v) => setState(() => _searchQuery = v),
+                decoration: InputDecoration(hintText: 'Search passwords...', prefixIcon: const Icon(Icons.search, size: 22),
+                  filled: true, fillColor: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                ),
               ),
-              onChanged: (value) {
-                setState(() => _searchQuery = value);
-              },
-            ),
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 36,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal, itemCount: categories.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  itemBuilder: (_, i) {
+                    final c = categories[i];
+                    final selected = _selectedCategory == c;
+                    return FilterChip(label: Text(c, style: TextStyle(fontSize: 13, color: selected ? Colors.white : theme.colorScheme.onSurface)),
+                      selected: selected, onSelected: (_) => setState(() => _selectedCategory = c),
+                      selectedColor: theme.colorScheme.primary, backgroundColor: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      side: BorderSide.none, padding: const EdgeInsets.symmetric(horizontal: 4),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
-          SizedBox(
-            height: 50,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: _categories.length,
-              itemBuilder: (context, index) {
-                final category = _categories[index];
-                final isSelected = _selectedCategory == category;
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: FilterChip(
-                    label: Text(category),
-                    selected: isSelected,
-                    onSelected: (selected) {
-                      setState(() => _selectedCategory = category);
-                    },
-                  ),
-                );
-              },
-            ),
-          ),
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _filteredPasswords.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.lock_open,
-                              size: 64,
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'No passwords yet',
-                              style: Theme.of(context).textTheme.titleLarge,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Tap the + button to add your first password',
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    : AnimationLimiter(
-                        child: ListView.builder(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: _filteredPasswords.length,
-                          itemBuilder: (context, index) {
-                            return AnimationConfiguration.staggeredList(
-                              position: index,
-                              duration: const Duration(milliseconds: 375),
-                              child: SlideAnimation(
-                                verticalOffset: 50.0,
-                                child: FadeInAnimation(
-                                  child: _buildPasswordCard(_filteredPasswords[index]),
-                                ),
-                              ),
-                            );
+        ),
+        Expanded(
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _filtered.isEmpty
+                  ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      Icon(Icons.lock_open_outlined, size: 64, color: theme.colorScheme.onSurfaceVariant.withOpacity(0.4)),
+                      const SizedBox(height: 16),
+                      Text('No passwords yet', style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                      const SizedBox(height: 6),
+                      Text('Tap + to add your first password', style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant.withOpacity(0.6))),
+                    ]))
+                  : ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 100),
+                      itemCount: _filtered.length,
+                      itemBuilder: (_, i) {
+                        final p = _filtered[i];
+                        return _PasswordCard(
+                          password: p,
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PasswordDetailScreen(password: p))).then((_) => _loadPasswords()),
+                          onDelete: () async {
+                            await _supabase.from('passwords').delete().eq('id', p.id);
+                            _loadPasswords();
                           },
-                        ),
-                      ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const PasswordFormScreen(),
-            ),
-          );
-          _loadPasswords();
-        },
-        child: const Icon(Icons.add),
-      ),
+                        );
+                      },
+                    ),
+        ),
+      ],
     );
   }
+}
 
-  Widget _buildPasswordCard(PasswordModel password) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-          child: Icon(
-            Icons.lock,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-        ),
-        title: Text(
-          password.title,
-          style: const TextStyle(fontWeight: FontWeight.w600),
-        ),
-        subtitle: Text(
-          password.username ?? password.url ?? 'No username',
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (password.isFavorite)
-              const Icon(Icons.star, color: Colors.amber, size: 20),
-            PopupMenuButton(
-              itemBuilder: (context) => [
-                const PopupMenuItem(
-                  value: 'view',
-                  child: Text('View'),
+class _PasswordCard extends StatelessWidget {
+  final PasswordModel password;
+  final VoidCallback onTap;
+  final VoidCallback onDelete;
+
+  const _PasswordCard({required this.password, required this.onTap, required this.onDelete});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final categoryColors = {
+      'Social': Colors.blue, 'Finance': Colors.green, 'Work': Colors.orange, 'Personal': Colors.purple, 'Other': Colors.grey,
+    };
+    final color = categoryColors[password.category] ?? theme.colorScheme.primary;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(18),
+        elevation: 0,
+        child: InkWell(
+          onTap: onTap, borderRadius: BorderRadius.circular(18),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: theme.colorScheme.outlineVariant.withOpacity(0.3)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 48, height: 48,
+                  decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(14)),
+                  child: Icon(Icons.lock_outline, color: color, size: 22),
                 ),
-                const PopupMenuItem(
-                  value: 'edit',
-                  child: Text('Edit'),
+                const SizedBox(width: 14),
+                Expanded(child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(password.title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 3),
+                    Text(password.username ?? '', style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  ],
+                )),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                  child: Text(password.category, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600)),
                 ),
-                const PopupMenuItem(
-                  value: 'delete',
-                  child: Text('Delete'),
+                const SizedBox(width: 6),
+                PopupMenuButton(
+                  icon: Icon(Icons.more_vert, size: 20, color: theme.colorScheme.onSurfaceVariant),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  itemBuilder: (_) => [PopupMenuItem(onTap: onDelete, child: const Row(children: [Icon(Icons.delete_outline, size: 18, color: Colors.red), SizedBox(width: 8), Text('Delete', style: TextStyle(color: Colors.red))]))],
                 ),
               ],
-              onSelected: (value) async {
-                switch (value) {
-                  case 'view':
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => PasswordDetailScreen(password: password),
-                      ),
-                    );
-                    break;
-                  case 'edit':
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => PasswordFormScreen(password: password),
-                      ),
-                    );
-                    _loadPasswords();
-                    break;
-                  case 'delete':
-                    _showDeleteConfirmation(password);
-                    break;
-                }
-              },
             ),
-          ],
+          ),
         ),
-        onTap: () async {
-          await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => PasswordDetailScreen(password: password),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  void _showDeleteConfirmation(PasswordModel password) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Password'),
-        content: Text('Are you sure you want to delete "${password.title}"?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _deletePassword(password.id);
-            },
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.red,
-            ),
-            child: const Text('Delete'),
-          ),
-        ],
       ),
     );
   }

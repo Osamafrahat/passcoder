@@ -5,329 +5,151 @@ import '../../core/encryption/encryption_service.dart';
 
 class CardFormScreen extends StatefulWidget {
   final CardModel? card;
-
   const CardFormScreen({super.key, this.card});
-
   @override
   State<CardFormScreen> createState() => _CardFormScreenState();
 }
 
 class _CardFormScreenState extends State<CardFormScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _cardholderNameController = TextEditingController();
-  final _cardNumberController = TextEditingController();
-  final _expiryDateController = TextEditingController();
+  final _nameController = TextEditingController();
+  final _numberController = TextEditingController();
+  final _expiryController = TextEditingController();
   final _cvvController = TextEditingController();
-
-  final SupabaseClient _supabase = Supabase.instance.client;
-  final EncryptionService _encryptionService = EncryptionService();
-
-  String? _cardType;
-  bool _isFavorite = false;
+  final _encryptionService = EncryptionService();
+  final _supabase = Supabase.instance.client;
   bool _isLoading = false;
   bool _obscureCvv = true;
+  String _cardType = 'Visa';
+
+  final _cardTypes = ['Visa', 'Mastercard', 'Amex', 'Other'];
 
   @override
   void initState() {
     super.initState();
     if (widget.card != null) {
-      _cardholderNameController.text = widget.card!.cardholderName;
-      _isFavorite = widget.card!.isFavorite;
-      _cardType = widget.card!.cardType;
-      _decryptExistingCard();
+      _nameController.text = widget.card!.cardholderName;
+      _cardType = widget.card!.cardType ?? 'Other';
+      _loadEncryptedFields();
     }
+    _numberController.addListener(_detectCardType);
   }
 
-  Future<void> _decryptExistingCard() async {
-    if (widget.card != null) {
-      try {
-        final cardNumber = await _encryptionService.decryptData(widget.card!.cardNumberEncrypted);
-        final expiryDate = await _encryptionService.decryptData(widget.card!.expiryDateEncrypted);
-        final cvv = await _encryptionService.decryptData(widget.card!.cvvEncrypted);
-
-        setState(() {
-          _cardNumberController.text = cardNumber;
-          _expiryDateController.text = expiryDate;
-          _cvvController.text = cvv;
-        });
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error decrypting card: $e')),
-          );
-        }
-      }
-    }
+  Future<void> _loadEncryptedFields() async {
+    try {
+      _numberController.text = await _encryptionService.decryptData(widget.card!.cardNumberEncrypted);
+    } catch (_) {}
+    try {
+      _expiryController.text = await _encryptionService.decryptData(widget.card!.expiryDateEncrypted);
+    } catch (_) {}
+    try {
+      _cvvController.text = await _encryptionService.decryptData(widget.card!.cvvEncrypted);
+    } catch (_) {}
   }
 
-  @override
-  void dispose() {
-    _cardholderNameController.dispose();
-    _cardNumberController.dispose();
-    _expiryDateController.dispose();
-    _cvvController.dispose();
-    super.dispose();
+  void _detectCardType() {
+    final num = _numberController.text.replaceAll(RegExp(r'\D'), '');
+    String type = 'Other';
+    if (num.startsWith('4')) type = 'Visa';
+    else if (num.startsWith('5') || num.startsWith('2')) type = 'Mastercard';
+    else if (num.startsWith('3')) type = 'Amex';
+    if (type != _cardType) setState(() => _cardType = type);
   }
 
-  void _detectCardType(String cardNumber) {
-    final cleaned = cardNumber.replaceAll(RegExp(r'\s+\d|\D'), '');
-    if (cleaned.startsWith('4')) {
-      setState(() => _cardType = 'Visa');
-    } else if (cleaned.startsWith(RegExp(r'^5[1-5]'))) {
-      setState(() => _cardType = 'Mastercard');
-    } else if (cleaned.startsWith(RegExp(r'^3[47]'))) {
-      setState(() => _cardType = 'American Express');
-    } else if (cleaned.startsWith(RegExp(r'^6(?:011|5)'))) {
-      setState(() => _cardType = 'Discover');
-    } else {
-      setState(() => _cardType = null);
-    }
-  }
-
-  String _formatCardNumber(String value) {
-    final cleaned = value.replaceAll(RegExp(r'\D'), '');
-    final buffer = StringBuffer();
-    for (int i = 0; i < cleaned.length; i++) {
-      if (i > 0 && i % 4 == 0) buffer.write(' ');
-      buffer.write(cleaned[i]);
-    }
-    return buffer.toString();
-  }
-
-  String _formatExpiryDate(String value) {
-    final cleaned = value.replaceAll(RegExp(r'\D'), '');
-    if (cleaned.length >= 2) {
-      return '${cleaned.substring(0, 2)}/${cleaned.substring(2)}';
-    }
-    return cleaned;
-  }
-
-  Future<void> _saveCard() async {
+  Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
-
     setState(() => _isLoading = true);
-
     try {
       final userId = _supabase.auth.currentUser?.id;
       if (userId == null) return;
-
-      final encryptedCardNumber = await _encryptionService.encryptData(_cardNumberController.text.replaceAll(RegExp(r'\s'), ''));
-      final encryptedExpiryDate = await _encryptionService.encryptData(_expiryDateController.text);
+      final encryptedNumber = await _encryptionService.encryptData(_numberController.text.replaceAll(RegExp(r'\s'), ''));
+      final encryptedExpiry = await _encryptionService.encryptData(_expiryController.text);
       final encryptedCvv = await _encryptionService.encryptData(_cvvController.text);
-
-      final cardData = {
-        'user_id': userId,
-        'cardholder_name': _cardholderNameController.text.trim(),
-        'card_number_encrypted': encryptedCardNumber,
-        'expiry_date_encrypted': encryptedExpiryDate,
-        'cvv_encrypted': encryptedCvv,
+      final data = {
+        'user_id': userId, 'cardholder_name': _nameController.text,
+        'card_number_encrypted': encryptedNumber,
         'card_type': _cardType,
-        'is_favorite': _isFavorite,
-        'updated_at': DateTime.now().toIso8601String(),
+        'expiry_date_encrypted': encryptedExpiry,
+        'cvv_encrypted': encryptedCvv,
       };
-
       if (widget.card != null) {
-        await _supabase
-            .from('credit_cards')
-            .update(cardData)
-            .eq('id', widget.card!.id);
+        await _supabase.from('cards').update(data).eq('id', widget.card!.id);
       } else {
-        cardData['created_at'] = DateTime.now().toIso8601String();
-        await _supabase.from('credit_cards').insert(cardData);
+        await _supabase.from('cards').insert(data);
       }
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(widget.card != null ? 'Card updated' : 'Card saved'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.pop(context);
-      }
+      if (mounted) Navigator.pop(context);
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error saving card: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.card != null ? 'Edit Card' : 'Add Card'),
-        actions: [
-          IconButton(
-            icon: Icon(_isFavorite ? Icons.star : Icons.star_border),
-            color: _isFavorite ? Colors.amber : null,
-            onPressed: () {
-              setState(() => _isFavorite = !_isFavorite);
-            },
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              TextFormField(
-                controller: _cardholderNameController,
-                textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(
-                  labelText: 'Cardholder Name *',
-                  prefixIcon: Icon(Icons.person_outlined),
-                  border: OutlineInputBorder(),
+      appBar: AppBar(title: Text(widget.card != null ? 'Edit Card' : 'New Card'), centerTitle: true),
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            _buildField(_nameController, 'Cardholder Name', Icons.person_outline),
+            const SizedBox(height: 16),
+            _buildField(_numberController, 'Card Number', Icons.credit_card, keyboard: TextInputType.number, maxLength: 19),
+            const SizedBox(height: 16),
+            Row(children: [
+              Expanded(child: _buildField(_expiryController, 'MM/YY', Icons.calendar_today, keyboard: TextInputType.datetime, maxLength: 5)),
+              const SizedBox(width: 16),
+              Expanded(child: TextFormField(
+                controller: _cvvController, obscureText: _obscureCvv,
+                maxLength: 4,
+                decoration: InputDecoration(labelText: 'CVV', prefixIcon: const Icon(Icons.lock_outlined),
+                  counterText: '',
+                  filled: true, fillColor: theme.colorScheme.surfaceContainerHighest.withOpacity(0.4),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                  suffixIcon: IconButton(icon: Icon(_obscureCvv ? Icons.visibility_outlined : Icons.visibility_off_outlined, size: 20), onPressed: () => setState(() => _obscureCvv = !_obscureCvv)),
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter cardholder name';
-                  }
-                  return null;
-                },
+                validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+              )),
+            ]),
+            const SizedBox(height: 20),
+            Text('Card Network', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8, runSpacing: 8,
+              children: _cardTypes.map((t) {
+                final selected = _cardType == t;
+                return ChoiceChip(label: Text(t), selected: selected, onSelected: (_) => setState(() => _cardType = t),
+                  selectedColor: theme.colorScheme.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  labelStyle: TextStyle(color: selected ? Colors.white : theme.colorScheme.onSurface),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 32),
+            SizedBox(
+              height: 54,
+              child: ElevatedButton(
+                onPressed: _isLoading ? null : _save,
+                style: ElevatedButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+                child: _isLoading ? const CircularProgressIndicator() : const Text('Save', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _cardNumberController,
-                keyboardType: TextInputType.number,
-                maxLength: 19,
-                decoration: InputDecoration(
-                  labelText: 'Card Number *',
-                  prefixIcon: const Icon(Icons.credit_card),
-                  border: const OutlineInputBorder(),
-                  suffixIcon: _cardType != null
-                      ? Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Text(
-                            _cardType!,
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.primary,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        )
-                      : null,
-                ),
-                onChanged: (value) {
-                  _detectCardType(value);
-                  final formatted = _formatCardNumber(value);
-                  if (formatted != value) {
-                    _cardNumberController.value = TextEditingValue(
-                      text: formatted,
-                      selection: TextSelection.collapsed(offset: formatted.length),
-                    );
-                  }
-                },
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter card number';
-                  }
-                  final cleaned = value.replaceAll(RegExp(r'\D'), '');
-                  if (cleaned.length < 13 || cleaned.length > 19) {
-                    return 'Please enter a valid card number';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _expiryDateController,
-                      keyboardType: TextInputType.number,
-                      maxLength: 5,
-                      decoration: const InputDecoration(
-                        labelText: 'Expiry Date *',
-                        prefixIcon: Icon(Icons.calendar_today),
-                        border: OutlineInputBorder(),
-                        hintText: 'MM/YY',
-                      ),
-                      onChanged: (value) {
-                        final formatted = _formatExpiryDate(value);
-                        if (formatted != value) {
-                          _expiryDateController.value = TextEditingValue(
-                            text: formatted,
-                            selection: TextSelection.collapsed(offset: formatted.length),
-                          );
-                        }
-                      },
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Required';
-                        }
-                        if (!RegExp(r'^\d{2}/\d{2}$').hasMatch(value)) {
-                          return 'MM/YY';
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _cvvController,
-                      keyboardType: TextInputType.number,
-                      maxLength: 4,
-                      obscureText: _obscureCvv,
-                      decoration: InputDecoration(
-                        labelText: 'CVV *',
-                        prefixIcon: const Icon(Icons.lock_outlined),
-                        border: const OutlineInputBorder(),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscureCvv
-                                ? Icons.visibility_outlined
-                                : Icons.visibility_off_outlined,
-                          ),
-                          onPressed: () {
-                            setState(() => _obscureCvv = !_obscureCvv);
-                          },
-                        ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Required';
-                        }
-                        if (value.length < 3 || value.length > 4) {
-                          return 'Invalid';
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              FilledButton(
-                onPressed: _isLoading ? null : _saveCard,
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : Text(widget.card != null ? 'Update Card' : 'Save Card'),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
+    );
+  }
+
+  Widget _buildField(TextEditingController c, String label, IconData icon, {TextInputType? keyboard, int? maxLength}) {
+    return TextFormField(
+      controller: c, keyboardType: keyboard, maxLength: maxLength,
+      decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon), counterText: '',
+        filled: true, fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.4),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+      ),
+      validator: (v) => v == null || v.isEmpty ? 'Required' : null,
     );
   }
 }

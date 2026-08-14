@@ -6,9 +6,7 @@ import '../../core/encryption/encryption_service.dart';
 
 class PasswordFormScreen extends StatefulWidget {
   final PasswordModel? password;
-
   const PasswordFormScreen({super.key, this.password});
-
   @override
   State<PasswordFormScreen> createState() => _PasswordFormScreenState();
 }
@@ -20,23 +18,13 @@ class _PasswordFormScreenState extends State<PasswordFormScreen> {
   final _passwordController = TextEditingController();
   final _urlController = TextEditingController();
   final _notesController = TextEditingController();
-
-  final SupabaseClient _supabase = Supabase.instance.client;
-  final EncryptionService _encryptionService = EncryptionService();
-
-  String _selectedCategory = 'General';
-  bool _isFavorite = false;
+  final _encryptionService = EncryptionService();
+  final _supabase = Supabase.instance.client;
+  String _category = 'Personal';
   bool _isLoading = false;
-  bool _obscurePassword = true;
+  bool _obscure = true;
 
-  final List<String> _categories = [
-    'General',
-    'Social',
-    'Email',
-    'Banking',
-    'Shopping',
-    'Work',
-  ];
+  final _categories = ['Personal', 'Social', 'Finance', 'Work', 'Other'];
 
   @override
   void initState() {
@@ -46,247 +34,125 @@ class _PasswordFormScreenState extends State<PasswordFormScreen> {
       _usernameController.text = widget.password!.username ?? '';
       _urlController.text = widget.password!.url ?? '';
       _notesController.text = widget.password!.notes ?? '';
-      _selectedCategory = widget.password!.category;
-      _isFavorite = widget.password!.isFavorite;
-      _decryptExistingPassword();
+      _category = widget.password!.category;
+      _loadPassword();
     }
   }
 
-  Future<void> _decryptExistingPassword() async {
-    if (widget.password != null) {
-      try {
-        final decrypted = await _encryptionService.decryptData(widget.password!.passwordEncrypted);
-        setState(() => _passwordController.text = decrypted);
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error decrypting password: $e')),
-          );
-        }
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _titleController.dispose();
-    _usernameController.dispose();
-    _passwordController.dispose();
-    _urlController.dispose();
-    _notesController.dispose();
-    super.dispose();
+  Future<void> _loadPassword() async {
+    try {
+      final decrypted = await _encryptionService.decryptData(widget.password!.passwordEncrypted);
+      _passwordController.text = decrypted;
+    } catch (e) {}
   }
 
   void _generatePassword() {
-    const String chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#\$%^&*()_+-=[]{}|;:,.<>?';
-    final Random random = Random.secure();
-    final StringBuffer password = StringBuffer();
-
-    for (int i = 0; i < 16; i++) {
-      password.write(chars[random.nextInt(chars.length)]);
-    }
-
-    setState(() => _passwordController.text = password.toString());
+    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#\$%^&*';
+    final random = Random.secure();
+    _passwordController.text = List.generate(20, (_) => chars[random.nextInt(chars.length)]).join();
+    setState(() {});
   }
 
-  Future<void> _savePassword() async {
+  Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
-
     setState(() => _isLoading = true);
-
     try {
       final userId = _supabase.auth.currentUser?.id;
       if (userId == null) return;
-
-      final encryptedPassword = await _encryptionService.encryptData(_passwordController.text);
-
-      final passwordData = {
-        'user_id': userId,
-        'title': _titleController.text.trim(),
-        'username': _usernameController.text.trim().isEmpty ? null : _usernameController.text.trim(),
-        'password_encrypted': encryptedPassword,
-        'url': _urlController.text.trim().isEmpty ? null : _urlController.text.trim(),
-        'notes': _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
-        'category': _selectedCategory,
-        'is_favorite': _isFavorite,
-        'updated_at': DateTime.now().toIso8601String(),
+      final encrypted = await _encryptionService.encryptData(_passwordController.text);
+      final data = {
+        'user_id': userId, 'title': _titleController.text, 'username': _usernameController.text,
+        'password_encrypted': encrypted, 'category': _category,
+        'url': _urlController.text.isEmpty ? null : _urlController.text,
+        'notes': _notesController.text.isEmpty ? null : _notesController.text,
       };
-
       if (widget.password != null) {
-        await _supabase
-            .from('passwords')
-            .update(passwordData)
-            .eq('id', widget.password!.id);
+        await _supabase.from('passwords').update(data).eq('id', widget.password!.id);
       } else {
-        passwordData['created_at'] = DateTime.now().toIso8601String();
-        await _supabase.from('passwords').insert(passwordData);
+        await _supabase.from('passwords').insert(data);
       }
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(widget.password != null ? 'Password updated' : 'Password saved'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.pop(context);
-      }
+      if (mounted) Navigator.pop(context);
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error saving password: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isEditing = widget.password != null;
+
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.password != null ? 'Edit Password' : 'Add Password'),
-        actions: [
-          IconButton(
-            icon: Icon(_isFavorite ? Icons.star : Icons.star_border),
-            color: _isFavorite ? Colors.amber : null,
-            onPressed: () {
-              setState(() => _isFavorite = !_isFavorite);
-            },
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              TextFormField(
-                controller: _titleController,
-                decoration: const InputDecoration(
-                  labelText: 'Title *',
-                  prefixIcon: Icon(Icons.title),
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a title';
-                  }
-                  return null;
-                },
+      appBar: AppBar(title: Text(isEditing ? 'Edit Password' : 'New Password'), centerTitle: true),
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            _buildField(_titleController, 'Title', Icons.title),
+            const SizedBox(height: 16),
+            _buildField(_usernameController, 'Username / Email', Icons.person_outline),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _passwordController, obscureText: _obscure,
+              decoration: InputDecoration(
+                labelText: 'Password', prefixIcon: const Icon(Icons.lock_outlined),
+                suffixIcon: Row(mainAxisSize: MainAxisSize.min, children: [
+                  IconButton(icon: const Icon(Icons.casino_outlined, size: 20), onPressed: _generatePassword, tooltip: 'Generate'),
+                  IconButton(icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined, size: 20), onPressed: () => setState(() => _obscure = !_obscure)),
+                ]),
+                filled: true, fillColor: theme.colorScheme.surfaceContainerHighest.withOpacity(0.4),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _usernameController,
-                decoration: const InputDecoration(
-                  labelText: 'Username',
-                  prefixIcon: Icon(Icons.person_outlined),
-                  border: OutlineInputBorder(),
-                ),
+              validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+            ),
+            const SizedBox(height: 16),
+            _buildField(_urlController, 'Website URL (optional)', Icons.link_outlined),
+            const SizedBox(height: 16),
+            _buildField(_notesController, 'Notes (optional)', Icons.notes_outlined, maxLines: 3),
+            const SizedBox(height: 20),
+            Text('Category', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8, runSpacing: 8,
+              children: _categories.map((c) {
+                final selected = _category == c;
+                return ChoiceChip(label: Text(c), selected: selected, onSelected: (_) => setState(() => _category = c),
+                  selectedColor: theme.colorScheme.primary, backgroundColor: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                  labelStyle: TextStyle(color: selected ? Colors.white : theme.colorScheme.onSurface, fontSize: 13),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 32),
+            SizedBox(
+              height: 54,
+              child: ElevatedButton(
+                onPressed: _isLoading ? null : _save,
+                style: ElevatedButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+                child: _isLoading ? const CircularProgressIndicator() : Text(isEditing ? 'Update' : 'Save', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _passwordController,
-                obscureText: _obscurePassword,
-                decoration: InputDecoration(
-                  labelText: 'Password *',
-                  prefixIcon: const Icon(Icons.lock_outlined),
-                  border: const OutlineInputBorder(),
-                  suffixIcon: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.password),
-                        tooltip: 'Generate Password',
-                        onPressed: _generatePassword,
-                      ),
-                      IconButton(
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_outlined
-                              : Icons.visibility_off_outlined,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _obscurePassword = !_obscurePassword;
-                          });
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a password';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _urlController,
-                keyboardType: TextInputType.url,
-                decoration: const InputDecoration(
-                  labelText: 'Website URL',
-                  prefixIcon: Icon(Icons.language),
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: _selectedCategory,
-                decoration: const InputDecoration(
-                  labelText: 'Category',
-                  prefixIcon: Icon(Icons.category_outlined),
-                  border: OutlineInputBorder(),
-                ),
-                items: _categories.map((category) {
-                  return DropdownMenuItem(
-                    value: category,
-                    child: Text(category),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() => _selectedCategory = value!);
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _notesController,
-                maxLines: 3,
-                decoration: const InputDecoration(
-                  labelText: 'Notes',
-                  prefixIcon: Icon(Icons.notes_outlined),
-                  border: OutlineInputBorder(),
-                  alignLabelWithHint: true,
-                ),
-              ),
-              const SizedBox(height: 24),
-              FilledButton(
-                onPressed: _isLoading ? null : _savePassword,
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : Text(widget.password != null ? 'Update Password' : 'Save Password'),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
+    );
+  }
+
+  Widget _buildField(TextEditingController c, String label, IconData icon, {int maxLines = 1}) {
+    return TextFormField(
+      controller: c, maxLines: maxLines,
+      decoration: InputDecoration(
+        labelText: label, prefixIcon: Icon(icon),
+        filled: true, fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.4),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+      ),
+      validator: (v) {
+        if (label.contains('(optional)')) return null;
+        return v == null || v.isEmpty ? 'Required' : null;
+      },
     );
   }
 }

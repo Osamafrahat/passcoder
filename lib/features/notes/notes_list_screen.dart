@@ -1,243 +1,108 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import '../../models/note_model.dart';
+import '../../core/encryption/encryption_service.dart';
 import 'note_form_screen.dart';
 
 class NotesListScreen extends StatefulWidget {
   const NotesListScreen({super.key});
-
   @override
   State<NotesListScreen> createState() => _NotesListScreenState();
 }
 
 class _NotesListScreenState extends State<NotesListScreen> {
   final SupabaseClient _supabase = Supabase.instance.client;
+  final EncryptionService _encryption = EncryptionService();
   List<NoteModel> _notes = [];
+  List<Map<String, String>> _decryptedNotes = [];
   bool _isLoading = true;
   String _searchQuery = '';
 
   @override
-  void initState() {
-    super.initState();
-    _loadNotes();
-  }
+  void initState() { super.initState(); _loadNotes(); }
 
   Future<void> _loadNotes() async {
-    setState(() => _isLoading = true);
-
+    setState(() { _isLoading = true; _decryptedNotes = []; });
     try {
       final userId = _supabase.auth.currentUser?.id;
       if (userId == null) return;
-
-      final response = await _supabase
-          .from('secure_notes')
-          .select()
-          .eq('user_id', userId)
-          .order('created_at', ascending: false);
-
-      setState(() {
-        _notes = (response as List)
-            .map((json) => NoteModel.fromJson(json))
-            .toList();
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() => _isLoading = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading notes: $e')),
-        );
+      final data = await _supabase.from('notes').select().eq('user_id', userId).order('created_at', ascending: false);
+      final notes = data.map((e) => NoteModel.fromJson(e)).toList();
+      final decrypted = <Map<String, String>>[];
+      for (final n in notes) {
+        String content = '';
+        try { content = await _encryption.decryptData(n.contentEncrypted); } catch (_) {}
+        decrypted.add({'title': n.title, 'content': content, 'id': n.id});
       }
-    }
-  }
-
-  List<NoteModel> get _filteredNotes {
-    return _notes.where((note) {
-      return note.title.toLowerCase().contains(_searchQuery.toLowerCase());
-    }).toList();
-  }
-
-  Future<void> _deleteNote(String id) async {
-    try {
-      await _supabase.from('secure_notes').delete().eq('id', id);
-      _loadNotes();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error deleting note: $e')),
-        );
-      }
-    }
+      setState(() { _notes = notes; _decryptedNotes = decrypted; _isLoading = false; });
+    } catch (e) { setState(() => _isLoading = false); }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: TextField(
-              decoration: const InputDecoration(
-                hintText: 'Search notes...',
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
+    final theme = Theme.of(context);
+    final noteColors = [Colors.blue, Colors.green, Colors.orange, Colors.purple, Colors.teal, Colors.pink];
+
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('My Notes', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 14),
+            TextField(
+              onChanged: (v) => setState(() => _searchQuery = v),
+              decoration: InputDecoration(hintText: 'Search notes...', prefixIcon: const Icon(Icons.search, size: 22),
+                filled: true, fillColor: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
               ),
-              onChanged: (value) {
-                setState(() => _searchQuery = value);
-              },
             ),
-          ),
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _filteredNotes.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.note_alt_outlined,
-                              size: 64,
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ]),
+        ),
+        Expanded(
+          child: _isLoading ? const Center(child: CircularProgressIndicator())
+              : _decryptedNotes.isEmpty
+                  ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      Icon(Icons.note_alt_outlined, size: 64, color: theme.colorScheme.onSurfaceVariant.withOpacity(0.4)),
+                      const SizedBox(height: 16),
+                      Text('No notes yet', style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                    ]))
+                  : GridView.builder(
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 0.9),
+                      itemCount: _decryptedNotes.length,
+                      itemBuilder: (_, i) {
+                        final nd = _decryptedNotes[i];
+                        final n = _notes[i];
+                        final color = noteColors[i % noteColors.length];
+                        return Material(
+                          color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(20),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(20),
+                            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => NoteFormScreen(note: n))).then((_) => _loadNotes()),
+                            onLongPress: () async {
+                              await _supabase.from('notes').delete().eq('id', n.id);
+                              _loadNotes();
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                Row(children: [
+                                  Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+                                  const Spacer(),
+                                ]),
+                                const Spacer(),
+                                Text(nd['title']!, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: color), maxLines: 2, overflow: TextOverflow.ellipsis),
+                                const SizedBox(height: 6),
+                                Text(nd['content']!, style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 12), maxLines: 3, overflow: TextOverflow.ellipsis),
+                              ]),
                             ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'No secure notes yet',
-                              style: Theme.of(context).textTheme.titleLarge,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Tap the + button to add your first note',
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    : AnimationLimiter(
-                        child: ListView.builder(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: _filteredNotes.length,
-                          itemBuilder: (context, index) {
-                            return AnimationConfiguration.staggeredList(
-                              position: index,
-                              duration: const Duration(milliseconds: 375),
-                              child: SlideAnimation(
-                                verticalOffset: 50.0,
-                                child: FadeInAnimation(
-                                  child: _buildNoteCard(_filteredNotes[index]),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const NoteFormScreen(),
-            ),
-          );
-          _loadNotes();
-        },
-        child: const Icon(Icons.add),
-      ),
-    );
-  }
-
-  Widget _buildNoteCard(NoteModel note) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
-          child: Icon(
-            Icons.note,
-            color: Theme.of(context).colorScheme.secondary,
-          ),
+                          ),
+                        );
+                      },
+                    ),
         ),
-        title: Text(
-          note.title,
-          style: const TextStyle(fontWeight: FontWeight.w600),
-        ),
-        subtitle: Text(
-          note.category,
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
-        ),
-        trailing: PopupMenuButton(
-          itemBuilder: (context) => [
-            const PopupMenuItem(
-              value: 'edit',
-              child: Text('Edit'),
-            ),
-            const PopupMenuItem(
-              value: 'delete',
-              child: Text('Delete'),
-            ),
-          ],
-          onSelected: (value) async {
-            switch (value) {
-              case 'edit':
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => NoteFormScreen(note: note),
-                  ),
-                );
-                _loadNotes();
-                break;
-              case 'delete':
-                _showDeleteConfirmation(note);
-                break;
-            }
-          },
-        ),
-        onTap: () async {
-          await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => NoteFormScreen(note: note),
-            ),
-          );
-          _loadNotes();
-        },
-      ),
-    );
-  }
-
-  void _showDeleteConfirmation(NoteModel note) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Note'),
-        content: Text('Are you sure you want to delete "${note.title}"?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _deleteNote(note.id);
-            },
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.red,
-            ),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+      ],
     );
   }
 }

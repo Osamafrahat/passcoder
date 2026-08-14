@@ -16,34 +16,23 @@ class PassCoderApp extends StatelessWidget {
       title: 'PassCoder',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF6366F1),
-          brightness: Brightness.light,
-        ),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF6366F1), brightness: Brightness.light),
         textTheme: GoogleFonts.interTextTheme(),
         useMaterial3: true,
+        scaffoldBackgroundColor: const Color(0xFFF5F5FA),
       ),
       darkTheme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF6366F1),
-          brightness: Brightness.dark,
-        ),
-        textTheme: GoogleFonts.interTextTheme(
-          ThemeData.dark().textTheme,
-        ),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF6366F1), brightness: Brightness.dark),
+        textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
         useMaterial3: true,
       ),
       themeMode: ThemeMode.system,
       home: const AuthGate(),
       onGenerateRoute: (settings) {
-        if (settings.name != null && settings.name!.startsWith('/?')) {
-          return MaterialPageRoute(builder: (_) => const AuthGate());
-        }
+        if (settings.name != null && settings.name!.startsWith('/?')) return MaterialPageRoute(builder: (_) => const AuthGate());
         return null;
       },
-      onUnknownRoute: (settings) {
-        return MaterialPageRoute(builder: (_) => const AuthGate());
-      },
+      onUnknownRoute: (settings) => MaterialPageRoute(builder: (_) => const AuthGate()),
     );
   }
 }
@@ -54,18 +43,11 @@ class AuthGate extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final session = Supabase.instance.client.auth.currentSession;
-
-    if (session != null) {
-      return const HomeScreen();
-    }
-
+    if (session != null) return const HomeScreen();
     return StreamBuilder<AuthState>(
       stream: Supabase.instance.client.auth.onAuthStateChange,
       builder: (context, snapshot) {
-        final session = snapshot.data?.session;
-        if (session != null) {
-          return const HomeScreen();
-        }
+        if (snapshot.data?.session != null) return const HomeScreen();
         return const LoginScreen();
       },
     );
@@ -74,7 +56,6 @@ class AuthGate extends StatelessWidget {
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
-
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
@@ -82,84 +63,47 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
 
-  final List<Widget> _screens = [
-    const PasswordListScreen(),
-    const NotesListScreen(),
-    const CardsListScreen(),
-    const PasswordGeneratorScreen(),
+  final _screens = const [
+    PasswordListScreen(),
+    NotesListScreen(),
+    CardsListScreen(),
+    PasswordGeneratorScreen(),
+  ];
+
+  final _titles = const ['Passwords', 'Notes', 'Cards', 'Generator'];
+
+  final _icons = const [
+    Icons.lock_outline, Icons.note_alt_outlined, Icons.credit_card_outlined, Icons.password_outlined,
+  ];
+
+  final _selectedIcons = const [
+    Icons.lock, Icons.note_alt, Icons.credit_card, Icons.password,
   ];
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('PassCoder'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Logout',
-            onPressed: () => _showLogoutDialog(context),
-          ),
-        ],
-      ),
-      body: _screens[_currentIndex],
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.lock_outline),
-            selectedIcon: Icon(Icons.lock),
-            label: 'Passwords',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.note_alt_outlined),
-            selectedIcon: Icon(Icons.note_alt),
-            label: 'Notes',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.credit_card_outlined),
-            selectedIcon: Icon(Icons.credit_card),
-            label: 'Cards',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.password_outlined),
-            selectedIcon: Icon(Icons.password),
-            label: 'Generator',
-          ),
-        ],
-      ),
-    );
-  }
+    final theme = Theme.of(context);
 
-  void _showLogoutDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Logout'),
-        content: const Text('Are you sure you want to logout?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              await Supabase.instance.client.auth.signOut();
-              if (context.mounted) {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (_) => const AuthGate()),
-                );
-              }
-            },
-            child: const Text('Logout'),
-          ),
-        ],
+    return Scaffold(
+      body: AnimatedSwitcher(duration: const Duration(milliseconds: 300), child: _screens[_currentIndex]),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, -5))],
+        ),
+        child: NavigationBar(
+          selectedIndex: _currentIndex,
+          onDestinationSelected: (i) => setState(() => _currentIndex = i),
+          backgroundColor: theme.colorScheme.surface,
+          elevation: 0,
+          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+          height: 70,
+          indicatorColor: theme.colorScheme.primary.withOpacity(0.12),
+          destinations: List.generate(4, (i) => NavigationDestination(
+            icon: Icon(_icons[i], color: theme.colorScheme.onSurfaceVariant),
+            selectedIcon: Icon(_selectedIcons[i], color: theme.colorScheme.primary),
+            label: _titles[i],
+          )),
+        ),
       ),
     );
   }

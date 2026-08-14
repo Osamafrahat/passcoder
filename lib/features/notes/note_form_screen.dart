@@ -5,198 +5,91 @@ import '../../core/encryption/encryption_service.dart';
 
 class NoteFormScreen extends StatefulWidget {
   final NoteModel? note;
-
   const NoteFormScreen({super.key, this.note});
-
   @override
   State<NoteFormScreen> createState() => _NoteFormScreenState();
 }
 
 class _NoteFormScreenState extends State<NoteFormScreen> {
-  final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _contentController = TextEditingController();
-
-  final SupabaseClient _supabase = Supabase.instance.client;
-  final EncryptionService _encryptionService = EncryptionService();
-
-  String _selectedCategory = 'General';
+  final _encryption = EncryptionService();
+  final _supabase = Supabase.instance.client;
   bool _isLoading = false;
-
-  final List<String> _categories = [
-    'General',
-    'Personal',
-    'Work',
-    'Ideas',
-    'Shopping',
-    'Other',
-  ];
 
   @override
   void initState() {
     super.initState();
     if (widget.note != null) {
       _titleController.text = widget.note!.title;
-      _selectedCategory = widget.note!.category;
-      _decryptExistingContent();
+      _loadContent();
     }
   }
 
-  Future<void> _decryptExistingContent() async {
-    if (widget.note != null) {
-      try {
-        final decrypted = await _encryptionService.decryptData(widget.note!.contentEncrypted);
-        setState(() => _contentController.text = decrypted);
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error decrypting note: $e')),
-          );
-        }
-      }
+  Future<void> _loadContent() async {
+    try {
+      final decrypted = await _encryption.decryptData(widget.note!.contentEncrypted);
+      _contentController.text = decrypted;
+    } catch (_) {}
+  }
+
+  Future<void> _save() async {
+    if (_titleController.text.isEmpty || _contentController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Title and content required')));
+      return;
     }
-  }
-
-  @override
-  void dispose() {
-    _titleController.dispose();
-    _contentController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _saveNote() async {
-    if (!_formKey.currentState!.validate()) return;
-
     setState(() => _isLoading = true);
-
     try {
       final userId = _supabase.auth.currentUser?.id;
       if (userId == null) return;
-
-      final encryptedContent = await _encryptionService.encryptData(_contentController.text);
-
-      final noteData = {
-        'user_id': userId,
-        'title': _titleController.text.trim(),
-        'content_encrypted': encryptedContent,
-        'category': _selectedCategory,
-        'updated_at': DateTime.now().toIso8601String(),
-      };
-
+      final encrypted = await _encryption.encryptData(_contentController.text);
+      final data = {'user_id': userId, 'title': _titleController.text, 'content_encrypted': encrypted};
       if (widget.note != null) {
-        await _supabase
-            .from('secure_notes')
-            .update(noteData)
-            .eq('id', widget.note!.id);
+        await _supabase.from('notes').update(data).eq('id', widget.note!.id);
       } else {
-        noteData['created_at'] = DateTime.now().toIso8601String();
-        await _supabase.from('secure_notes').insert(noteData);
+        await _supabase.from('notes').insert(data);
       }
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(widget.note != null ? 'Note updated' : 'Note saved'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.pop(context);
-      }
+      if (mounted) Navigator.pop(context);
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error saving note: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.note != null ? 'Edit Note' : 'Add Note'),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              TextFormField(
-                controller: _titleController,
-                decoration: const InputDecoration(
-                  labelText: 'Title *',
-                  prefixIcon: Icon(Icons.title),
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a title';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: _selectedCategory,
-                decoration: const InputDecoration(
-                  labelText: 'Category',
-                  prefixIcon: Icon(Icons.category_outlined),
-                  border: OutlineInputBorder(),
-                ),
-                items: _categories.map((category) {
-                  return DropdownMenuItem(
-                    value: category,
-                    child: Text(category),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() => _selectedCategory = value!);
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _contentController,
-                maxLines: 10,
-                decoration: const InputDecoration(
-                  labelText: 'Content *',
-                  prefixIcon: Icon(Icons.notes_outlined),
-                  border: OutlineInputBorder(),
-                  alignLabelWithHint: true,
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter content';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 24),
-              FilledButton(
-                onPressed: _isLoading ? null : _saveNote,
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : Text(widget.note != null ? 'Update Note' : 'Save Note'),
-              ),
-            ],
+      appBar: AppBar(title: Text(widget.note != null ? 'Edit Note' : 'New Note'), centerTitle: true),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          TextField(
+            controller: _titleController,
+            decoration: InputDecoration(hintText: 'Title', prefixIcon: const Icon(Icons.title),
+              filled: true, fillColor: theme.colorScheme.surfaceContainerHighest.withOpacity(0.4),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+            ),
           ),
-        ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _contentController, maxLines: 12,
+            decoration: InputDecoration(hintText: 'Write your note...', alignLabelWithHint: true,
+              filled: true, fillColor: theme.colorScheme.surfaceContainerHighest.withOpacity(0.4),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+            ),
+          ),
+          const SizedBox(height: 28),
+          SizedBox(
+            height: 54,
+            child: ElevatedButton(
+              onPressed: _isLoading ? null : _save,
+              style: ElevatedButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+              child: _isLoading ? const CircularProgressIndicator() : const Text('Save', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+            ),
+          ),
+        ],
       ),
     );
   }
