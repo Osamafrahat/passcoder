@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -52,24 +53,58 @@ class _AuthGateState extends State<AuthGate> {
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
   );
+  final SupabaseClient _supabase = Supabase.instance.client;
+
   bool _isLoading = true;
   bool _authenticated = false;
   bool _biometricFailed = false;
+  bool _checked = false;
+  StreamSubscription<AuthState>? _authSubscription;
 
   @override
   void initState() {
     super.initState();
-    _init();
+    _listenAuth();
   }
 
-  Future<void> _init() async {
-    final session = Supabase.instance.client.auth.currentSession;
+  @override
+  void dispose() {
+    _authSubscription?.cancel();
+    super.dispose();
+  }
 
-    if (session == null) {
-      setState(() { _isLoading = false; _authenticated = false; });
-      return;
+  void _listenAuth() {
+    _authSubscription = _supabase.auth.onAuthStateChange.listen((data) {
+      final session = data.session;
+      if (session != null && !_checked) {
+        _checked = true;
+        _handleSession(session);
+      } else if (session == null && !_isLoading) {
+        setState(() { _authenticated = false; _biometricFailed = false; });
+      }
+    });
+
+    // Check current session on launch
+    final session = _supabase.auth.currentSession;
+    if (session != null) {
+      _handleSession(session);
+    } else {
+      // No session yet, wait for stream. Show loading for 2s then show login
+      Future.delayed(const Duration(seconds: 2), () {
+        if (!_checked && mounted) {
+          _checked = true;
+          final s = _supabase.auth.currentSession;
+          if (s != null) {
+            _handleSession(s);
+          } else {
+            setState(() { _isLoading = false; _authenticated = false; });
+          }
+        }
+      });
     }
+  }
 
+  Future<void> _handleSession(Session session) async {
     if (kIsWeb) {
       setState(() { _isLoading = false; _authenticated = true; });
       return;
@@ -79,6 +114,7 @@ class _AuthGateState extends State<AuthGate> {
     final biometricsAvailable = await _isBiometricsAvailable();
 
     if (hasSaved && biometricsAvailable) {
+      // Show biometric prompt
       final success = await _authenticateWithBiometrics();
       if (success) {
         setState(() { _isLoading = false; _authenticated = true; });
@@ -131,22 +167,33 @@ class _AuthGateState extends State<AuthGate> {
     }
   }
 
-  void _logout() async {
-    await Supabase.instance.client.auth.signOut();
-    setState(() { _authenticated = false; _biometricFailed = false; });
+  void _usePassword() async {
+    await _supabase.auth.signOut();
+    setState(() { _authenticated = false; _biometricFailed = false; _isLoading = false; });
   }
 
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Loading...'),
+            ],
+          ),
+        ),
+      );
     }
 
     if (!_authenticated) {
       if (_biometricFailed) {
         return _BiometricLockScreen(
           onRetry: _retryBiometric,
-          onUsePassword: _logout,
+          onUsePassword: _usePassword,
         );
       }
       return const LoginScreen();
