@@ -1,5 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:local_auth/local_auth.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../features/auth/login_screen.dart';
 import '../features/passwords/password_list_screen.dart';
@@ -37,19 +40,184 @@ class PassCoderApp extends StatelessWidget {
   }
 }
 
-class AuthGate extends StatelessWidget {
+class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  State<AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends State<AuthGate> {
+  final LocalAuthentication _localAuth = LocalAuthentication();
+  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage(
+    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+  );
+  bool _isLoading = true;
+  bool _authenticated = false;
+  bool _biometricFailed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _init();
+  }
+
+  Future<void> _init() async {
     final session = Supabase.instance.client.auth.currentSession;
-    if (session != null) return const HomeScreen();
-    return StreamBuilder<AuthState>(
-      stream: Supabase.instance.client.auth.onAuthStateChange,
-      builder: (context, snapshot) {
-        if (snapshot.data?.session != null) return const HomeScreen();
-        return const LoginScreen();
-      },
+
+    if (session == null) {
+      setState(() { _isLoading = false; _authenticated = false; });
+      return;
+    }
+
+    if (kIsWeb) {
+      setState(() { _isLoading = false; _authenticated = true; });
+      return;
+    }
+
+    final hasSaved = await _hasSavedCredentials();
+    final biometricsAvailable = await _isBiometricsAvailable();
+
+    if (hasSaved && biometricsAvailable) {
+      final success = await _authenticateWithBiometrics();
+      if (success) {
+        setState(() { _isLoading = false; _authenticated = true; });
+      } else {
+        setState(() { _isLoading = false; _authenticated = false; _biometricFailed = true; });
+      }
+    } else {
+      setState(() { _isLoading = false; _authenticated = true; });
+    }
+  }
+
+  Future<bool> _hasSavedCredentials() async {
+    try {
+      final email = await _secureStorage.read(key: 'saved_email');
+      final password = await _secureStorage.read(key: 'saved_password');
+      return email != null && password != null;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> _isBiometricsAvailable() async {
+    try {
+      final canAuth = await _localAuth.canCheckBiometrics;
+      final isSupported = await _localAuth.isDeviceSupported();
+      return canAuth && isSupported;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> _authenticateWithBiometrics() async {
+    try {
+      return await _localAuth.authenticate(
+        localizedReason: 'Authenticate to access your passwords',
+        options: const AuthenticationOptions(stickyAuth: true, biometricOnly: false),
+      );
+    } catch (_) {
+      return false;
+    }
+  }
+
+  void _retryBiometric() async {
+    setState(() { _isLoading = true; _biometricFailed = false; });
+    final success = await _authenticateWithBiometrics();
+    if (success) {
+      setState(() { _isLoading = false; _authenticated = true; });
+    } else {
+      setState(() { _isLoading = false; _biometricFailed = true; });
+    }
+  }
+
+  void _logout() async {
+    await Supabase.instance.client.auth.signOut();
+    setState(() { _authenticated = false; _biometricFailed = false; });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    if (!_authenticated) {
+      if (_biometricFailed) {
+        return _BiometricLockScreen(
+          onRetry: _retryBiometric,
+          onUsePassword: _logout,
+        );
+      }
+      return const LoginScreen();
+    }
+
+    return const HomeScreen();
+  }
+}
+
+class _BiometricLockScreen extends StatelessWidget {
+  final VoidCallback onRetry;
+  final VoidCallback onUsePassword;
+
+  const _BiometricLockScreen({required this.onRetry, required this.onUsePassword});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      body: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              theme.colorScheme.primary,
+              theme.colorScheme.primary.withValues(alpha: 0.7),
+              theme.colorScheme.secondary,
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), shape: BoxShape.circle),
+                  child: const Icon(Icons.fingerprint, size: 72, color: Colors.white),
+                ),
+                const SizedBox(height: 28),
+                const Text('Authentication Required', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                Text('Use your fingerprint or PIN to continue', style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 15)),
+                const SizedBox(height: 48),
+                SizedBox(
+                  width: 220, height: 54,
+                  child: ElevatedButton.icon(
+                    onPressed: onRetry,
+                    icon: const Icon(Icons.fingerprint, size: 24),
+                    label: const Text('Try Again', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: theme.colorScheme.primary,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextButton(
+                  onPressed: onUsePassword,
+                  child: const Text('Use Password Instead', style: TextStyle(color: Colors.white70, fontSize: 14)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
