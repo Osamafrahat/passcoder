@@ -79,7 +79,7 @@ class _PasswordFormScreenState extends State<PasswordFormScreen> {
 
   void _generatePassword() {
     const String chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#\$%^&*()_+-=[]{}|;:,.<>?';
-    final Random random = Random();
+    final Random random = Random.secure();
     final StringBuffer password = StringBuffer();
 
     for (int i = 0; i < 16; i++) {

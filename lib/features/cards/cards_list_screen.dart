@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import '../../models/card_model.dart';
-import '../../core/encryption/encryption_service.dart';
 import 'card_form_screen.dart';
 
 class CardsListScreen extends StatefulWidget {
@@ -14,7 +13,6 @@ class CardsListScreen extends StatefulWidget {
 
 class _CardsListScreenState extends State<CardsListScreen> {
   final SupabaseClient _supabase = Supabase.instance.client;
-  final EncryptionService _encryptionService = EncryptionService();
   List<CardModel> _cards = [];
   bool _isLoading = true;
   String _searchQuery = '';

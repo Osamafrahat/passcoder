@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import '../../models/password_model.dart';
-import '../../core/encryption/encryption_service.dart';
 import 'password_form_screen.dart';
 import 'password_detail_screen.dart';
 
@@ -15,7 +14,6 @@ class PasswordListScreen extends StatefulWidget {
 
 class _PasswordListScreenState extends State<PasswordListScreen> {
   final SupabaseClient _supabase = Supabase.instance.client;
-  final EncryptionService _encryptionService = EncryptionService();
   List<PasswordModel> _passwords = [];
   bool _isLoading = true;
   String _searchQuery = '';

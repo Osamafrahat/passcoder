@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../features/auth/login_screen.dart';
-import '../features/auth/register_screen.dart';
 import '../features/passwords/password_list_screen.dart';
 import '../features/notes/notes_list_screen.dart';
 import '../features/cards/cards_list_screen.dart';

@@ -37,7 +37,7 @@ class _PasswordGeneratorScreenState extends State<PasswordGeneratorScreen> {
 
     if (chars.isEmpty) chars = letters;
 
-    final Random random = Random();
+    final Random random = Random.secure();
     final StringBuffer password = StringBuffer();
 
     for (int i = 0; i < _passwordLength; i++) {
