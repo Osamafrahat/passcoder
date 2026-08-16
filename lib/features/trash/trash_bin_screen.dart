@@ -108,7 +108,7 @@ class _TrashBinScreenState extends State<TrashBinScreen> {
           ? const Center(child: CircularProgressIndicator())
           : _trashItems.isEmpty
               ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Icon(Icons.delete_outline, size: 64, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3)),
+                  Icon(Icons.delete_outline, size: 64, color: theme.colorScheme.onSurfaceVariant.withOpacity(0.3)),
                   const SizedBox(height: 16),
                   Text('Trash is empty', style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
                 ]))

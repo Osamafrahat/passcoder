@@ -104,7 +104,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
                     ? IconButton(icon: const Icon(Icons.clear), onPressed: () { _controller.clear(); setState(() => _results = []); })
                     : null,
                 filled: true,
-                fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                fillColor: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
               ),
             ),
@@ -163,7 +163,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
       child: ListTile(
         leading: Container(
           padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+          decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
           child: Icon(icon, color: color, size: 20),
         ),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),

@@ -104,16 +104,16 @@ class _PasswordHealthScreenState extends State<PasswordHealthScreen> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: LinearGradient(colors: [color.withValues(alpha: 0.8), color.withValues(alpha: 0.5)]),
+        gradient: LinearGradient(colors: [color.withOpacity(0.8), color.withOpacity(0.5)]),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(children: [
-        Text('Health Score', style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 14)),
+        Text('Health Score', style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 14)),
         const SizedBox(height: 8),
         Text('${score.round()}', style: const TextStyle(color: Colors.white, fontSize: 48, fontWeight: FontWeight.bold)),
         const SizedBox(height: 4),
         Text(score >= 80 ? 'Excellent' : score >= 50 ? 'Good' : 'Needs Improvement',
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 16, fontWeight: FontWeight.w500)),
+            style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 16, fontWeight: FontWeight.w500)),
       ]),
     );
   }
@@ -135,7 +135,7 @@ class _PasswordHealthScreenState extends State<PasswordHealthScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.4),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
@@ -151,9 +151,9 @@ class _PasswordHealthScreenState extends State<PasswordHealthScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
+        border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Row(children: [
         Icon(icon, color: color, size: 24),
@@ -171,7 +171,7 @@ class _PasswordHealthScreenState extends State<PasswordHealthScreen> {
       margin: const EdgeInsets.only(left: 12, top: 4),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -186,7 +186,7 @@ class _PasswordHealthScreenState extends State<PasswordHealthScreen> {
       margin: const EdgeInsets.only(left: 12, top: 4),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.deepOrange.withValues(alpha: 0.1),
+        color: Colors.deepOrange.withOpacity(0.1),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(children: [

@@ -60,7 +60,7 @@ class _NotesListScreenState extends State<NotesListScreen> {
             TextField(
               onChanged: (v) => setState(() => _searchQuery = v),
               decoration: InputDecoration(hintText: 'Search notes...', prefixIcon: const Icon(Icons.search, size: 22),
-                filled: true, fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                filled: true, fillColor: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
               ),
             ),
@@ -72,7 +72,7 @@ class _NotesListScreenState extends State<NotesListScreen> {
                   ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                       Container(
                         padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(color: theme.colorScheme.primary.withValues(alpha: 0.1), shape: BoxShape.circle),
+                        decoration: BoxDecoration(color: theme.colorScheme.primary.withOpacity(0.1), shape: BoxShape.circle),
                         child: Icon(Icons.note_alt_outlined, size: 48, color: theme.colorScheme.primary),
                       ),
                       const SizedBox(height: 20),
@@ -89,7 +89,7 @@ class _NotesListScreenState extends State<NotesListScreen> {
                         final n = _notes[i];
                         final color = noteColors[i % noteColors.length];
                         return Material(
-                          color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20),
+                          color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(20),
                           child: InkWell(
                             borderRadius: BorderRadius.circular(20),
                             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => NoteFormScreen(note: n))).then((_) => loadNotes()),

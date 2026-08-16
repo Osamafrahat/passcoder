@@ -92,7 +92,7 @@ class _NoteFormScreenState extends State<NoteFormScreen> {
             controller: _titleController,
             style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
             decoration: InputDecoration(hintText: 'Note title',
-              filled: true, fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+              filled: true, fillColor: theme.colorScheme.surfaceContainerHighest.withOpacity(0.4),
               contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
             ),
@@ -101,7 +101,7 @@ class _NoteFormScreenState extends State<NoteFormScreen> {
           TextField(
             controller: _contentController, maxLines: null, minLines: 12,
             decoration: InputDecoration(hintText: 'Write your note...', alignLabelWithHint: true,
-              filled: true, fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+              filled: true, fillColor: theme.colorScheme.surfaceContainerHighest.withOpacity(0.4),
               contentPadding: const EdgeInsets.all(18),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
             ),

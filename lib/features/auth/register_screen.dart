@@ -76,7 +76,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [
-          theme.colorScheme.primary, theme.colorScheme.primary.withValues(alpha: 0.7), theme.colorScheme.secondary,
+          theme.colorScheme.primary, theme.colorScheme.primary.withOpacity(0.7), theme.colorScheme.secondary,
         ])),
         child: SafeArea(
           child: Center(
@@ -86,7 +86,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(18), decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), shape: BoxShape.circle),
+                    padding: const EdgeInsets.all(18), decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
                     child: const Icon(Icons.person_add_outlined, size: 50, color: Colors.white),
                   ),
                   const SizedBox(height: 18),
@@ -96,7 +96,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 32),
                   Container(
                     padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(24), border: Border.all(color: Colors.white.withValues(alpha: 0.2))),
+                    decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(24), border: Border.all(color: Colors.white.withOpacity(0.2))),
                     child: Form(
                       key: _formKey,
                       child: Column(
@@ -149,7 +149,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       controller: controller, obscureText: obscure, keyboardType: keyboard, style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(hintText: hint, hintStyle: const TextStyle(color: Colors.white54),
         prefixIcon: Icon(icon, color: Colors.white60, size: 20), suffixIcon: suffix,
-        filled: true, fillColor: Colors.white.withValues(alpha: 0.1),
+        filled: true, fillColor: Colors.white.withOpacity(0.1),
         contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Colors.white38)),

@@ -117,7 +117,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         decoration: BoxDecoration(
           gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [
             theme.colorScheme.primary,
-            theme.colorScheme.primary.withValues(alpha: 0.7),
+            theme.colorScheme.primary.withOpacity(0.7),
             theme.colorScheme.secondary,
           ]),
         ),
@@ -134,7 +134,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                     children: [
                       Container(
                         padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), shape: BoxShape.circle),
+                        decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
                         child: const Icon(Icons.shield_outlined, size: 60, color: Colors.white),
                       ),
                       const SizedBox(height: 20),
@@ -196,7 +196,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   Widget _buildGlassCard({required Widget child}) {
     return Container(
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(24), border: Border.all(color: Colors.white.withValues(alpha: 0.2)), boxShadow: [BoxShadow(blurRadius: 30, color: Colors.black.withValues(alpha: 0.1))]),
+      decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(24), border: Border.all(color: Colors.white.withOpacity(0.2)), boxShadow: [BoxShadow(blurRadius: 30, color: Colors.black.withOpacity(0.1))]),
       child: child,
     );
   }
@@ -216,7 +216,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(hintText: hint, hintStyle: const TextStyle(color: Colors.white54),
         prefixIcon: Icon(icon, color: Colors.white60, size: 20), suffixIcon: suffix,
-        filled: true, fillColor: Colors.white.withValues(alpha: 0.1),
+        filled: true, fillColor: Colors.white.withOpacity(0.1),
         contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Colors.white38)),

@@ -69,7 +69,7 @@ class _CardsListScreenState extends State<CardsListScreen> {
             TextField(
               onChanged: (v) => setState(() => _searchQuery = v),
               decoration: InputDecoration(hintText: 'Search cards...', prefixIcon: const Icon(Icons.search, size: 22),
-                filled: true, fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                filled: true, fillColor: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
               ),
             ),
@@ -81,7 +81,7 @@ class _CardsListScreenState extends State<CardsListScreen> {
                   ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                       Container(
                         padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(color: theme.colorScheme.primary.withValues(alpha: 0.1), shape: BoxShape.circle),
+                        decoration: BoxDecoration(color: theme.colorScheme.primary.withOpacity(0.1), shape: BoxShape.circle),
                         child: Icon(Icons.credit_card_outlined, size: 48, color: theme.colorScheme.primary),
                       ),
                       const SizedBox(height: 20),
@@ -142,14 +142,14 @@ class _CreditCardWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      elevation: 4, shadowColor: color.withValues(alpha: 0.3),
+      elevation: 4, shadowColor: color.withOpacity(0.3),
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
         onTap: onTap, borderRadius: BorderRadius.circular(20),
         child: Container(
           height: 200, padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [color, color.withValues(alpha: 0.8), color.withValues(alpha: 0.6)]),
+            gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [color, color.withOpacity(0.8), color.withOpacity(0.6)]),
             borderRadius: BorderRadius.circular(20),
           ),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -169,12 +169,12 @@ class _CreditCardWidget extends StatelessWidget {
             const Spacer(),
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('CARD HOLDER', style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 10, letterSpacing: 1)),
+                Text('CARD HOLDER', style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 10, letterSpacing: 1)),
                 const SizedBox(height: 4),
                 Text(cardholderName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14)),
               ]),
               Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                Text('EXPIRES', style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 10, letterSpacing: 1)),
+                Text('EXPIRES', style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 10, letterSpacing: 1)),
                 const SizedBox(height: 4),
                 Text(expiryDate, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14)),
               ]),

@@ -102,8 +102,9 @@ class PasswordListScreenState extends State<PasswordListScreen> {
               TextField(
                 onChanged: (v) => setState(() => _searchQuery = v),
                 decoration: InputDecoration(
-                  hintText: 'Search passwords...', prefixIcon: const Icon(Icons.search, size: 22),
-                  filled: true, fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                  hintText: 'Search passwords...', hintStyle: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+                  prefixIcon: Icon(Icons.search, size: 22, color: theme.colorScheme.onSurfaceVariant),
+                  filled: true, fillColor: theme.colorScheme.surfaceContainerHighest,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
                 ),
@@ -121,7 +122,7 @@ class PasswordListScreenState extends State<PasswordListScreen> {
                       return FilterChip(
                         label: Text(c, style: TextStyle(fontSize: 13, color: selected ? Colors.white : theme.colorScheme.onSurface)),
                         selected: selected, onSelected: (_) => setState(() => _selectedCategory = c),
-                        selectedColor: theme.colorScheme.primary, backgroundColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                        selectedColor: theme.colorScheme.primary, backgroundColor: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         side: BorderSide.none, padding: const EdgeInsets.symmetric(horizontal: 4),
                       );
@@ -149,7 +150,7 @@ class PasswordListScreenState extends State<PasswordListScreen> {
                   ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                       Container(
                         padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(color: theme.colorScheme.primary.withValues(alpha: 0.1), shape: BoxShape.circle),
+                        decoration: BoxDecoration(color: theme.colorScheme.primary.withOpacity(0.1), shape: BoxShape.circle),
                         child: Icon(Icons.lock_open_outlined, size: 48, color: theme.colorScheme.primary),
                       ),
                       const SizedBox(height: 20),
@@ -204,12 +205,12 @@ class _PasswordCard extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: password.isFavorite ? theme.colorScheme.primary.withValues(alpha: 0.5) : theme.colorScheme.outlineVariant.withValues(alpha: 0.3)),
+              border: Border.all(color: password.isFavorite ? theme.colorScheme.primary.withOpacity(0.5) : theme.colorScheme.outlineVariant.withOpacity(0.3)),
             ),
             child: Row(children: [
               Container(
                 width: 48, height: 48,
-                decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(14)),
+                decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(14)),
                 child: Icon(Icons.lock_outline, color: color, size: 22),
               ),
               const SizedBox(width: 14),
@@ -223,7 +224,7 @@ class _PasswordCard extends StatelessWidget {
               ])),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
                 child: Text(password.category, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600)),
               ),
               const SizedBox(width: 4),

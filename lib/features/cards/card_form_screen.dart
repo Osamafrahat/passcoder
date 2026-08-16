@@ -134,7 +134,7 @@ class _CardFormScreenState extends State<CardFormScreen> {
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(labelText: 'CVV', prefixIcon: const Icon(Icons.lock_outlined),
                   counterText: '',
-                  filled: true, fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                  filled: true, fillColor: theme.colorScheme.surfaceContainerHighest.withOpacity(0.4),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
                   suffixIcon: IconButton(icon: Icon(_obscureCvv ? Icons.visibility_outlined : Icons.visibility_off_outlined, size: 20), onPressed: () => setState(() => _obscureCvv = !_obscureCvv)),
                 ),
@@ -173,7 +173,7 @@ class _CardFormScreenState extends State<CardFormScreen> {
     return TextFormField(
       controller: c, keyboardType: keyboard, maxLength: maxLength,
       decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon), counterText: '',
-        filled: true, fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+        filled: true, fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.4),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
       ),
       validator: (v) => v == null || v.isEmpty ? 'Required' : null,

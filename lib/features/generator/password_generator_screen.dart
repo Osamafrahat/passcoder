@@ -59,7 +59,7 @@ class _PasswordGeneratorScreenState extends State<PasswordGeneratorScreen> {
         Container(
           width: double.infinity, padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [theme.colorScheme.primary, theme.colorScheme.primary.withValues(alpha: 0.7)]),
+            gradient: LinearGradient(colors: [theme.colorScheme.primary, theme.colorScheme.primary.withOpacity(0.7)]),
             borderRadius: BorderRadius.circular(24),
           ),
           child: Column(children: [
@@ -78,7 +78,7 @@ class _PasswordGeneratorScreenState extends State<PasswordGeneratorScreen> {
         const SizedBox(height: 20),
         Container(
           padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(color: theme.colorScheme.surface, borderRadius: BorderRadius.circular(20), border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3))),
+          decoration: BoxDecoration(color: theme.colorScheme.surface, borderRadius: BorderRadius.circular(20), border: Border.all(color: theme.colorScheme.outlineVariant.withOpacity(0.3))),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
               Text('Length: $_passwordLength', style: const TextStyle(fontWeight: FontWeight.w600)),
@@ -97,7 +97,7 @@ class _PasswordGeneratorScreenState extends State<PasswordGeneratorScreen> {
         const SizedBox(height: 20),
         Container(
           padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(color: theme.colorScheme.surface, borderRadius: BorderRadius.circular(20), border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3))),
+          decoration: BoxDecoration(color: theme.colorScheme.surface, borderRadius: BorderRadius.circular(20), border: Border.all(color: theme.colorScheme.outlineVariant.withOpacity(0.3))),
           child: Column(children: [
             _toggleTile('Uppercase Letters', 'A-Z', _includeUppercase, (v) => setState(() { _includeUppercase = v; _generatePassword(); })),
             const Divider(),
@@ -115,7 +115,7 @@ class _PasswordGeneratorScreenState extends State<PasswordGeneratorScreen> {
       onTap: onTap, borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(12)),
+        decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(12)),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           Icon(icon, color: Colors.white, size: 18),
           const SizedBox(width: 6),

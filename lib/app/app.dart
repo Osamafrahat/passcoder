@@ -232,7 +232,7 @@ class _BiometricLockScreen extends StatelessWidget {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft, end: Alignment.bottomRight,
-            colors: [theme.colorScheme.primary, theme.colorScheme.primary.withValues(alpha: 0.7), theme.colorScheme.secondary],
+            colors: [theme.colorScheme.primary, theme.colorScheme.primary.withOpacity(0.7), theme.colorScheme.secondary],
           ),
         ),
         child: SafeArea(
@@ -240,13 +240,13 @@ class _BiometricLockScreen extends StatelessWidget {
             child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
               Container(
                 padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), shape: BoxShape.circle),
+                decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
                 child: const Icon(Icons.fingerprint, size: 72, color: Colors.white),
               ),
               const SizedBox(height: 28),
               const Text('Authentication Required', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
-              Text('Use your fingerprint or PIN to continue', style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 15)),
+              Text('Use your fingerprint or PIN to continue', style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 15)),
               const SizedBox(height: 48),
               SizedBox(
                 width: 220, height: 54,
@@ -387,7 +387,7 @@ class _HomeScreenState extends State<HomeScreen> {
         elevation: 0,
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         height: 70,
-        indicatorColor: theme.colorScheme.primary.withValues(alpha: 0.12),
+        indicatorColor: theme.colorScheme.primary.withOpacity(0.12),
         destinations: List.generate(4, (i) => NavigationDestination(
           icon: Icon(_icons[i], color: theme.colorScheme.onSurfaceVariant),
           selectedIcon: Icon(_selectedIcons[i], color: theme.colorScheme.primary),

@@ -53,7 +53,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildThemeToggle(ThemeData theme) {
     return Container(
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.4),
         borderRadius: BorderRadius.circular(14),
       ),
       child: SwitchListTile(
@@ -70,7 +70,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildAutoLockOption(ThemeData theme) {
     return Container(
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.4),
         borderRadius: BorderRadius.circular(14),
       ),
       child: ListTile(
@@ -109,7 +109,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildExportOption(ThemeData theme) {
     return Container(
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.4),
         borderRadius: BorderRadius.circular(14),
       ),
       child: ListTile(
@@ -155,7 +155,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildImportOption(ThemeData theme) {
     return Container(
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.4),
         borderRadius: BorderRadius.circular(14),
       ),
       child: ListTile(

@@ -93,7 +93,7 @@ class _PasswordDetailScreenState extends State<PasswordDetailScreen> {
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [
-          theme.colorScheme.primary, theme.colorScheme.primary.withValues(alpha: 0.6), theme.colorScheme.surface,
+          theme.colorScheme.primary, theme.colorScheme.primary.withOpacity(0.6), theme.colorScheme.surface,
         ])),
         child: SafeArea(
           bottom: false,
@@ -153,7 +153,7 @@ class _PasswordDetailScreenState extends State<PasswordDetailScreen> {
                     children: [
                       Center(child: Container(
                         width: 72, height: 72,
-                        decoration: BoxDecoration(color: theme.colorScheme.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(22)),
+                        decoration: BoxDecoration(color: theme.colorScheme.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(22)),
                         child: Icon(Icons.lock_outline, color: theme.colorScheme.primary, size: 32),
                       )),
                       const SizedBox(height: 20),
@@ -161,7 +161,7 @@ class _PasswordDetailScreenState extends State<PasswordDetailScreen> {
                       const SizedBox(height: 8),
                       Center(child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                        decoration: BoxDecoration(color: theme.colorScheme.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
+                        decoration: BoxDecoration(color: theme.colorScheme.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
                         child: Text(p.category, style: TextStyle(color: theme.colorScheme.primary, fontSize: 13, fontWeight: FontWeight.w500)),
                       )),
                       const SizedBox(height: 28),
@@ -193,7 +193,7 @@ class _PasswordDetailScreenState extends State<PasswordDetailScreen> {
                         Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                            color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.4),
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -205,7 +205,7 @@ class _PasswordDetailScreenState extends State<PasswordDetailScreen> {
                             const SizedBox(height: 10),
                             Wrap(spacing: 6, runSpacing: 6, children: p.tags.map((t) => Container(
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                              decoration: BoxDecoration(color: theme.colorScheme.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                              decoration: BoxDecoration(color: theme.colorScheme.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
                               child: Text('#$t', style: TextStyle(color: theme.colorScheme.primary, fontSize: 12, fontWeight: FontWeight.w500)),
                             )).toList()),
                           ]),
@@ -226,9 +226,9 @@ class _PasswordDetailScreenState extends State<PasswordDetailScreen> {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Colors.orange.withValues(alpha: 0.1),
+                            color: Colors.orange.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+                            border: Border.all(color: Colors.orange.withOpacity(0.3)),
                           ),
                           child: Row(children: [
                             const Icon(Icons.schedule, color: Colors.orange, size: 20),
@@ -266,7 +266,7 @@ class _InfoTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.4),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
