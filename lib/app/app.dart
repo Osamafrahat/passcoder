@@ -359,35 +359,39 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: [
-          PasswordListScreen(onLogout: _onLogout),
-          NotesListScreen(onLogout: _onLogout),
-          CardsListScreen(onLogout: _onLogout),
-          PasswordGeneratorScreen(onLogout: _onLogout),
-        ],
-      ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 20, offset: const Offset(0, -5))],
+    return Column(
+      children: [
+        Expanded(
+          child: IndexedStack(
+            index: _currentIndex,
+            children: [
+              PasswordListScreen(onLogout: _onLogout),
+              NotesListScreen(onLogout: _onLogout),
+              CardsListScreen(onLogout: _onLogout),
+              PasswordGeneratorScreen(onLogout: _onLogout),
+            ],
+          ),
         ),
-        child: NavigationBar(
-          selectedIndex: _currentIndex,
-          onDestinationSelected: (i) => setState(() => _currentIndex = i),
-          backgroundColor: theme.colorScheme.surface,
-          elevation: 0,
-          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-          height: 70,
-          indicatorColor: theme.colorScheme.primary.withValues(alpha: 0.12),
-          destinations: List.generate(4, (i) => NavigationDestination(
-            icon: Icon(_icons[i], color: theme.colorScheme.onSurfaceVariant),
-            selectedIcon: Icon(_selectedIcons[i], color: theme.colorScheme.primary),
-            label: _titles[i],
-          )),
+        Container(
+          decoration: BoxDecoration(
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 20, offset: const Offset(0, -5))],
+          ),
+          child: NavigationBar(
+            selectedIndex: _currentIndex,
+            onDestinationSelected: (i) => setState(() => _currentIndex = i),
+            backgroundColor: theme.colorScheme.surface,
+            elevation: 0,
+            labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+            height: 70,
+            indicatorColor: theme.colorScheme.primary.withValues(alpha: 0.12),
+            destinations: List.generate(4, (i) => NavigationDestination(
+              icon: Icon(_icons[i], color: theme.colorScheme.onSurfaceVariant),
+              selectedIcon: Icon(_selectedIcons[i], color: theme.colorScheme.primary),
+              label: _titles[i],
+            )),
+          ),
         ),
-      ),
+      ],
     );
   }
 }

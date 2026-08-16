@@ -144,133 +144,141 @@ class _PasswordListScreenState extends State<PasswordListScreen> {
           ),
         ],
       ),
-      body: Column(
+      body: Stack(
         children: [
-          Container(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextField(
-                  onChanged: (v) => setState(() => _searchQuery = v),
-                  decoration: InputDecoration(
-                    hintText: 'Search passwords...',
-                    prefixIcon: const Icon(Icons.search, size: 22),
-                    filled: true,
-                    fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Row(children: [
-                  SizedBox(
-                    height: 36,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: categories.length,
-                      separatorBuilder: (_, __) => const SizedBox(width: 8),
-                      itemBuilder: (_, i) {
-                        final c = categories[i];
-                        final selected = _selectedCategory == c;
-                        return FilterChip(
-                          label: Text(c, style: TextStyle(fontSize: 13, color: selected ? Colors.white : theme.colorScheme.onSurface)),
-                          selected: selected,
-                          onSelected: (_) => setState(() => _selectedCategory = c),
-                          selectedColor: theme.colorScheme.primary,
-                          backgroundColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          side: BorderSide.none,
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                        );
-                      },
+          Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextField(
+                      onChanged: (v) => setState(() => _searchQuery = v),
+                      decoration: InputDecoration(
+                        hintText: 'Search passwords...',
+                        prefixIcon: const Icon(Icons.search, size: 22),
+                        filled: true,
+                        fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                      ),
                     ),
-                  ),
-                  const Spacer(),
-                  PopupMenuButton<String>(
-                    icon: Icon(Icons.sort, size: 20, color: theme.colorScheme.onSurfaceVariant),
-                    onSelected: (v) => setState(() => _sortBy = v),
-                    itemBuilder: (_) => [
-                      const PopupMenuItem(value: 'newest', child: Text('Newest first')),
-                      const PopupMenuItem(value: 'oldest', child: Text('Oldest first')),
-                      const PopupMenuItem(value: 'title', child: Text('Alphabetical')),
-                    ],
-                  ),
-                ]),
-              ],
-            ),
-          ),
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _filtered.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(20),
-                              decoration: BoxDecoration(color: theme.colorScheme.primary.withValues(alpha: 0.1), shape: BoxShape.circle),
-                              child: Icon(Icons.lock_open_outlined, size: 48, color: theme.colorScheme.primary),
-                            ),
-                            const SizedBox(height: 20),
-                            Text('No passwords yet', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
-                            const SizedBox(height: 6),
-                            Text('Tap + to add your first password', style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-                          ],
-                        ),
-                      )
-                    : RefreshIndicator(
-                        onRefresh: _loadPasswords,
-                        child: ListView.builder(
-                          padding: const EdgeInsets.fromLTRB(20, 12, 20, 100),
-                          itemCount: _filtered.length,
+                    const SizedBox(height: 8),
+                    Row(children: [
+                      SizedBox(
+                        height: 36,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: categories.length,
+                          separatorBuilder: (_, __) => const SizedBox(width: 8),
                           itemBuilder: (_, i) {
-                            final p = _filtered[i];
-                            return _PasswordCard(
-                              password: p,
-                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PasswordDetailScreen(password: p))).then((_) => _loadPasswords()),
-                              onFavorite: () => _toggleFavorite(p),
-                              onQuickCopy: () async {
-                                try {
-                                  final decrypted = await _encryption.decryptData(p.passwordEncrypted);
-                                  _quickCopy(decrypted, 'Password');
-                                } catch (_) {
-                                  _quickCopy('Decryption failed', 'Password');
-                                }
-                              },
-                              onDelete: () => _softDelete(p),
-                              onMoveUp: i > 0 ? () {
-                                setState(() {
-                                  final idx = _passwords.indexOf(p);
-                                  final prevIdx = _passwords.indexOf(_filtered[i - 1]);
-                                  final temp = _passwords[idx];
-                                  _passwords[idx] = _passwords[prevIdx];
-                                  _passwords[prevIdx] = temp;
-                                });
-                              } : null,
-                              onMoveDown: i < _filtered.length - 1 ? () {
-                                setState(() {
-                                  final idx = _passwords.indexOf(p);
-                                  final nextIdx = _passwords.indexOf(_filtered[i + 1]);
-                                  final temp = _passwords[idx];
-                                  _passwords[idx] = _passwords[nextIdx];
-                                  _passwords[nextIdx] = temp;
-                                });
-                              } : null,
+                            final c = categories[i];
+                            final selected = _selectedCategory == c;
+                            return FilterChip(
+                              label: Text(c, style: TextStyle(fontSize: 13, color: selected ? Colors.white : theme.colorScheme.onSurface)),
+                              selected: selected,
+                              onSelected: (_) => setState(() => _selectedCategory = c),
+                              selectedColor: theme.colorScheme.primary,
+                              backgroundColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              side: BorderSide.none,
+                              padding: const EdgeInsets.symmetric(horizontal: 4),
                             );
                           },
                         ),
                       ),
+                      const Spacer(),
+                      PopupMenuButton<String>(
+                        icon: Icon(Icons.sort, size: 20, color: theme.colorScheme.onSurfaceVariant),
+                        onSelected: (v) => setState(() => _sortBy = v),
+                        itemBuilder: (_) => [
+                          const PopupMenuItem(value: 'newest', child: Text('Newest first')),
+                          const PopupMenuItem(value: 'oldest', child: Text('Oldest first')),
+                          const PopupMenuItem(value: 'title', child: Text('Alphabetical')),
+                        ],
+                      ),
+                    ]),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _filtered.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(20),
+                                  decoration: BoxDecoration(color: theme.colorScheme.primary.withValues(alpha: 0.1), shape: BoxShape.circle),
+                                  child: Icon(Icons.lock_open_outlined, size: 48, color: theme.colorScheme.primary),
+                                ),
+                                const SizedBox(height: 20),
+                                Text('No passwords yet', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+                                const SizedBox(height: 6),
+                                Text('Tap + to add your first password', style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                              ],
+                            ),
+                          )
+                        : RefreshIndicator(
+                            onRefresh: _loadPasswords,
+                            child: ListView.builder(
+                              padding: const EdgeInsets.fromLTRB(20, 12, 20, 100),
+                              itemCount: _filtered.length,
+                              itemBuilder: (_, i) {
+                                final p = _filtered[i];
+                                return _PasswordCard(
+                                  password: p,
+                                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PasswordDetailScreen(password: p))).then((_) => _loadPasswords()),
+                                  onFavorite: () => _toggleFavorite(p),
+                                  onQuickCopy: () async {
+                                    try {
+                                      final decrypted = await _encryption.decryptData(p.passwordEncrypted);
+                                      _quickCopy(decrypted, 'Password');
+                                    } catch (_) {
+                                      _quickCopy('Decryption failed', 'Password');
+                                    }
+                                  },
+                                  onDelete: () => _softDelete(p),
+                                  onMoveUp: i > 0 ? () {
+                                    setState(() {
+                                      final idx = _passwords.indexOf(p);
+                                      final prevIdx = _passwords.indexOf(_filtered[i - 1]);
+                                      final temp = _passwords[idx];
+                                      _passwords[idx] = _passwords[prevIdx];
+                                      _passwords[prevIdx] = temp;
+                                    });
+                                  } : null,
+                                  onMoveDown: i < _filtered.length - 1 ? () {
+                                    setState(() {
+                                      final idx = _passwords.indexOf(p);
+                                      final nextIdx = _passwords.indexOf(_filtered[i + 1]);
+                                      final temp = _passwords[idx];
+                                      _passwords[idx] = _passwords[nextIdx];
+                                      _passwords[nextIdx] = temp;
+                                    });
+                                  } : null,
+                                );
+                              },
+                            ),
+                          ),
+              ),
+            ],
+          ),
+          Positioned(
+            bottom: 24,
+            right: 24,
+            child: FloatingActionButton.extended(
+              heroTag: 'fab_passwords',
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PasswordFormScreen())).then((_) => _loadPasswords()),
+              icon: const Icon(Icons.add),
+              label: const Text('Add Password'),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            ),
           ),
         ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        heroTag: 'fab_passwords',
-        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PasswordFormScreen())).then((_) => _loadPasswords()),
-        icon: const Icon(Icons.add),
-        label: const Text('Add Password'),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );
   }
