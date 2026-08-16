@@ -144,9 +144,14 @@ class _PasswordListScreenState extends State<PasswordListScreen> {
           ),
         ],
       ),
-      body: Stack(
-        children: [
-          Column(
+      floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'fab_passwords',
+        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PasswordFormScreen())).then((_) => _loadPasswords()),
+        icon: const Icon(Icons.add),
+        label: const Text('Add Password'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+      body: Column(
             children: [
               Container(
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
@@ -266,19 +271,6 @@ class _PasswordListScreenState extends State<PasswordListScreen> {
                           ),
               ),
             ],
-          ),
-          Positioned(
-            bottom: 24,
-            right: 24,
-            child: FloatingActionButton.extended(
-              heroTag: 'fab_passwords',
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PasswordFormScreen())).then((_) => _loadPasswords()),
-              icon: const Icon(Icons.add),
-              label: const Text('Add Password'),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            ),
-          ),
-        ],
       ),
     );
   }
