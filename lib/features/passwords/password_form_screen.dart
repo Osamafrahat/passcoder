@@ -84,10 +84,25 @@ class _PasswordFormScreenState extends State<PasswordFormScreen> {
       if (_twoFactorController.text.trim().isNotEmpty) {
         data['two_factor_code'] = await _encryptionService.encryptData(_twoFactorController.text.trim());
       }
-      if (widget.password != null) {
-        await _supabase.from('passwords').update(data).eq('id', widget.password!.id);
-      } else {
-        await _supabase.from('passwords').insert(data);
+      try {
+        if (widget.password != null) {
+          await _supabase.from('passwords').update(data).eq('id', widget.password!.id);
+        } else {
+          await _supabase.from('passwords').insert(data);
+        }
+      } catch (e) {
+        final msg = e.toString();
+        if (msg.contains('is_favorite') || msg.contains('tags') || msg.contains('two_factor_code') || msg.contains('deleted_at')) {
+          data.remove('tags');
+          data.remove('two_factor_code');
+          if (widget.password != null) {
+            await _supabase.from('passwords').update(data).eq('id', widget.password!.id);
+          } else {
+            await _supabase.from('passwords').insert(data);
+          }
+        } else {
+          rethrow;
+        }
       }
       if (mounted) Navigator.pop(context);
     } catch (e) {

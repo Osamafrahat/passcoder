@@ -13,9 +13,9 @@ class ExportImportService {
     final userId = _supabase.auth.currentUser?.id;
     if (userId == null) throw Exception('Not authenticated');
 
-    final passwordsData = await _supabase.from('passwords').select('id,title,username,password_encrypted,url,notes,category,is_favorite,created_at').eq('user_id', userId);
-    final notesData = await _supabase.from('notes').select('id,title,content_encrypted,category,created_at').eq('user_id', userId);
-    final cardsData = await _supabase.from('cards').select('id,cardholder_name,card_number_encrypted,expiry_date_encrypted,cvv_encrypted,card_type,is_favorite,created_at').eq('user_id', userId);
+    final passwordsData = await _supabase.from('passwords').select().eq('user_id', userId);
+    final notesData = await _supabase.from('notes').select().eq('user_id', userId);
+    final cardsData = await _supabase.from('cards').select().eq('user_id', userId);
 
     final passwords = <Map<String, dynamic>>[];
     for (final p in passwordsData) {
@@ -111,16 +111,22 @@ class ExportImportService {
         if (p['username'] != null && (p['username'] as String).isNotEmpty) {
           encUsername = await _encryption.encryptData(p['username']);
         }
-        await _supabase.from('passwords').insert({
+        final insertData = {
           'user_id': userId,
           'title': p['title'] ?? 'Untitled',
-          'username_encrypted': encUsername,
+          'username': encUsername,
           'password_encrypted': encPassword,
           'url': p['url'] ?? '',
           'notes': p['notes'] ?? '',
           'category': p['category'] ?? 'General',
-          'is_favorite': p['is_favorite'] ?? false,
-        });
+        };
+        try { insertData['is_favorite'] = p['is_favorite'] ?? false; } catch (_) {}
+        try {
+          await _supabase.from('passwords').insert(insertData);
+        } catch (e) {
+          insertData.remove('is_favorite');
+          await _supabase.from('passwords').insert(insertData);
+        }
       }
     }
 
@@ -141,15 +147,21 @@ class ExportImportService {
         final encNumber = await _encryption.encryptData(c['card_number'] ?? '');
         final encExpiry = await _encryption.encryptData(c['expiry_date'] ?? '');
         final encCvv = await _encryption.encryptData(c['cvv'] ?? '');
-        await _supabase.from('cards').insert({
+        final insertData = {
           'user_id': userId,
           'cardholder_name': c['cardholder_name'] ?? '',
           'card_number_encrypted': encNumber,
           'expiry_date_encrypted': encExpiry,
           'cvv_encrypted': encCvv,
           'card_type': c['card_type'] ?? '',
-          'is_favorite': c['is_favorite'] ?? false,
-        });
+        };
+        try { insertData['is_favorite'] = c['is_favorite'] ?? false; } catch (_) {}
+        try {
+          await _supabase.from('cards').insert(insertData);
+        } catch (e) {
+          insertData.remove('is_favorite');
+          await _supabase.from('cards').insert(insertData);
+        }
       }
     }
   }

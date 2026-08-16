@@ -26,7 +26,7 @@ class _PasswordHealthScreenState extends State<PasswordHealthScreen> {
     try {
       final userId = Supabase.instance.client.auth.currentUser?.id;
       if (userId == null) return;
-      final data = await Supabase.instance.client.from('passwords').select('id,title,password_encrypted,created_at').eq('user_id', userId);
+      final data = await Supabase.instance.client.from('passwords').select().eq('user_id', userId);
       final passwords = <Map<String, dynamic>>[];
       for (final p in data) {
         String password = '';

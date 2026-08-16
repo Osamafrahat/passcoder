@@ -2,14 +2,14 @@ import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:encrypt/encrypt.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class EncryptionService {
   static const String _keyName = 'master_encryption_key';
-  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
 
   Future<Key> getEncryptionKey() async {
-    String? existingKey = await _secureStorage.read(key: _keyName);
+    final prefs = await SharedPreferences.getInstance();
+    String? existingKey = prefs.getString(_keyName);
 
     if (existingKey != null) {
       return Key.fromBase64(existingKey);
@@ -22,7 +22,7 @@ class EncryptionService {
     }
 
     final newKey = Key(keyBytes);
-    await _secureStorage.write(key: _keyName, value: newKey.base64);
+    await prefs.setString(_keyName, newKey.base64);
     return newKey;
   }
 
@@ -50,6 +50,7 @@ class EncryptionService {
   }
 
   Future<void> deleteEncryptionKey() async {
-    await _secureStorage.delete(key: _keyName);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_keyName);
   }
 }

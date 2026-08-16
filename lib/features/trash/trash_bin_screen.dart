@@ -32,7 +32,11 @@ class _TrashBinScreenState extends State<TrashBinScreen> {
           ...notes.map((n) => {...n, 'type': 'note'}),
           ...cards.map((c) => {...c, 'type': 'card'}),
         ];
-        _trashItems.sort((a, b) => DateTime.parse(b['deleted_at']).compareTo(DateTime.parse(a['deleted_at'])));
+        _trashItems.sort((a, b) {
+          final aDate = a['deleted_at'] != null ? DateTime.parse(a['deleted_at']) : DateTime(2000);
+          final bDate = b['deleted_at'] != null ? DateTime.parse(b['deleted_at']) : DateTime(2000);
+          return bDate.compareTo(aDate);
+        });
       } catch (_) {
         _trashItems = [];
       }

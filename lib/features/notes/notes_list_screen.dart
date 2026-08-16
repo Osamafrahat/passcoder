@@ -19,6 +19,7 @@ class _NotesListScreenState extends State<NotesListScreen> {
   List<Map<String, String>> _decryptedNotes = [];
   bool _isLoading = true;
   String _searchQuery = '';
+  String _selectedCategory = 'All';
 
   @override
   void initState() { super.initState(); loadNotes(); }
@@ -30,11 +31,11 @@ class _NotesListScreenState extends State<NotesListScreen> {
   }
 
   void loadNotes() async {
-    setState(() { _isLoading = true; _decryptedNotes = []; });
+    setState(() { _isLoading = true; });
     try {
       final userId = _supabase.auth.currentUser?.id;
-      if (userId == null) return;
-      final data = await _supabase.from('notes').select('id,user_id,title,content_encrypted,category,is_favorite,created_at,updated_at').eq('user_id', userId).order('created_at', ascending: false);
+      if (userId == null) { setState(() { _isLoading = false; }); return; }
+      final data = await _supabase.from('notes').select().eq('user_id', userId).order('created_at', ascending: false);
       final notes = data.map((e) => NoteModel.fromJson(e)).where((n) => !n.isTrashed).toList();
       final decrypted = <Map<String, String>>[];
       for (final n in notes) {
@@ -46,50 +47,121 @@ class _NotesListScreenState extends State<NotesListScreen> {
     } catch (e) { setState(() => _isLoading = false); }
   }
 
+  Future<void> _toggleFavorite(NoteModel n) async {
+    try {
+      await _supabase.from('notes').update({'is_favorite': !n.isFavorite}).eq('id', n.id);
+      loadNotes();
+    } catch (_) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Run the SQL migration in Supabase to enable favorites'), behavior: SnackBarBehavior.floating));
+    }
+  }
+
+  Future<void> _softDelete(NoteModel n) async {
+    try {
+      await _supabase.from('notes').update({'deleted_at': DateTime.now().toIso8601String()}).eq('id', n.id);
+      loadNotes();
+    } catch (_) {
+      try { await _supabase.from('notes').delete().eq('id', n.id); loadNotes(); } catch (_) {}
+    }
+  }
+
+  List<int> get _filteredIndices {
+    if (_notes.isEmpty || _decryptedNotes.isEmpty || _notes.length != _decryptedNotes.length) return [];
+    final indices = <int>[];
+    for (int i = 0; i < _notes.length; i++) {
+      final n = _notes[i];
+      final nd = _decryptedNotes[i];
+      final matchSearch = _searchQuery.isEmpty || nd['title']!.toLowerCase().contains(_searchQuery.toLowerCase()) || nd['content']!.toLowerCase().contains(_searchQuery.toLowerCase());
+      final matchCat = _selectedCategory == 'All' || n.category == _selectedCategory;
+      if (matchSearch && matchCat) indices.add(i);
+    }
+    indices.sort((a, b) {
+      final na = _notes[a], nb = _notes[b];
+      if (na.isFavorite && !nb.isFavorite) return -1;
+      if (!na.isFavorite && nb.isFavorite) return 1;
+      return nb.createdAt.compareTo(na.createdAt);
+    });
+    return indices;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     final noteColors = [Colors.blue, Colors.green, Colors.orange, Colors.purple, Colors.teal, Colors.pink];
-    final visibleNotes = _decryptedNotes.where((nd) => _searchQuery.isEmpty || nd['title']!.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
+    final categories = ['All', ...{..._notes.map((n) => n.category)}];
+    final filteredIndices = _filteredIndices;
 
     return Column(
       children: [
-        Container(
+        Padding(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            TextField(
-              onChanged: (v) => setState(() => _searchQuery = v),
-              decoration: InputDecoration(hintText: 'Search notes...', prefixIcon: const Icon(Icons.search, size: 22),
-                filled: true, fillColor: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
-              ),
+          child: TextField(
+            onChanged: (v) => setState(() => _searchQuery = v),
+            style: TextStyle(color: cs.onSurface),
+            decoration: InputDecoration(
+              hintText: 'Search notes...',
+              hintStyle: TextStyle(color: cs.onSurfaceVariant),
+              prefixIcon: Icon(Icons.search, size: 22, color: cs.onSurfaceVariant),
+              filled: true,
+              fillColor: cs.surfaceContainerHighest,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
             ),
-          ]),
+          ),
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 36,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            itemCount: categories.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 8),
+            itemBuilder: (_, i) {
+              final c = categories[i];
+              final selected = _selectedCategory == c;
+              return FilterChip(
+                label: Text(c, style: TextStyle(fontSize: 13, color: selected ? Colors.white : cs.onSurface)),
+                selected: selected,
+                onSelected: (_) => setState(() => _selectedCategory = c),
+                selectedColor: cs.primary,
+                backgroundColor: cs.surfaceContainerHighest,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                side: BorderSide.none,
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+              );
+            },
+          ),
         ),
         Expanded(
-          child: _isLoading ? const Center(child: CircularProgressIndicator())
-              : visibleNotes.isEmpty
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : filteredIndices.isEmpty
                   ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                       Container(
                         padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(color: theme.colorScheme.primary.withOpacity(0.1), shape: BoxShape.circle),
-                        child: Icon(Icons.note_alt_outlined, size: 48, color: theme.colorScheme.primary),
+                        decoration: BoxDecoration(color: cs.primary.withOpacity(0.1), shape: BoxShape.circle),
+                        child: Icon(Icons.note_alt_outlined, size: 48, color: cs.primary),
                       ),
                       const SizedBox(height: 20),
-                      Text('No notes yet', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 6),
-                      Text('Tap + to add your first note', style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                      Text('No notes yet', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: cs.onSurface)),
+                      const SizedBox(height: 8),
+                      Text('Tap + to add your first note', style: TextStyle(color: cs.onSurfaceVariant, fontSize: 14)),
                     ]))
                   : GridView.builder(
-                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 100),
                       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 0.85),
-                      itemCount: visibleNotes.length,
+                      itemCount: filteredIndices.length,
                       itemBuilder: (_, i) {
-                        final nd = visibleNotes[i];
-                        final n = _notes[i];
+                        final idx = filteredIndices[i];
+                        final n = _notes[idx];
+                        final nd = _decryptedNotes[idx];
                         final color = noteColors[i % noteColors.length];
+                        final categoryColors = {'Personal': Colors.purple, 'Work': Colors.orange, 'Ideas': Colors.amber, 'Health': Colors.green, 'Finance': Colors.blue, 'Other': Colors.grey};
+                        final catColor = categoryColors[n.category] ?? cs.primary;
                         return Material(
-                          color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(20),
+                          color: catColor.withOpacity(0.08), borderRadius: BorderRadius.circular(20),
                           child: InkWell(
                             borderRadius: BorderRadius.circular(20),
                             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => NoteFormScreen(note: n))).then((_) => loadNotes()),
@@ -97,30 +169,38 @@ class _NotesListScreenState extends State<NotesListScreen> {
                               padding: const EdgeInsets.all(16),
                               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                                 Row(children: [
-                                  Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-                                  const Spacer(),
+                                  if (n.isFavorite) Icon(Icons.star, size: 14, color: Colors.amber.shade600),
+                                  if (n.isFavorite) const SizedBox(width: 4),
+                                  Expanded(
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                      decoration: BoxDecoration(color: catColor.withOpacity(0.15), borderRadius: BorderRadius.circular(6)),
+                                      child: Text(n.category, style: TextStyle(color: catColor, fontSize: 10, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                    ),
+                                  ),
                                   PopupMenuButton(
-                                    icon: Icon(Icons.more_vert, size: 18, color: color),
+                                    icon: Icon(Icons.more_vert, size: 18, color: cs.onSurfaceVariant),
                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                     itemBuilder: (_) => [
+                                      PopupMenuItem(
+                                        child: Row(children: [Icon(n.isFavorite ? Icons.star : Icons.star_border, size: 18, color: Colors.amber), const SizedBox(width: 8), Text(n.isFavorite ? 'Unfavorite' : 'Favorite')]),
+                                        onTap: () => _toggleFavorite(n),
+                                      ),
                                       PopupMenuItem(
                                         child: const Row(children: [Icon(Icons.edit_outlined, size: 18), SizedBox(width: 8), Text('Edit')]),
                                         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => NoteFormScreen(note: n))).then((_) => loadNotes()),
                                       ),
                                       PopupMenuItem(
                                         child: const Row(children: [Icon(Icons.delete_outline, size: 18, color: Colors.red), SizedBox(width: 8), Text('Delete', style: TextStyle(color: Colors.red))]),
-                                        onTap: () async {
-                                          try { await _supabase.from('notes').update({'deleted_at': DateTime.now().toIso8601String()}).eq('id', n.id); } catch (_) { await _supabase.from('notes').delete().eq('id', n.id); }
-                                          loadNotes();
-                                        },
+                                        onTap: () => _softDelete(n),
                                       ),
                                     ],
                                   ),
                                 ]),
                                 const Spacer(),
-                                Text(nd['title']!, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: color), maxLines: 2, overflow: TextOverflow.ellipsis),
+                                Text(nd['title']!, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: cs.onSurface), maxLines: 2, overflow: TextOverflow.ellipsis),
                                 const SizedBox(height: 6),
-                                Text(nd['content']!, style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 12), maxLines: 3, overflow: TextOverflow.ellipsis),
+                                Text(nd['content']!, style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12), maxLines: 3, overflow: TextOverflow.ellipsis),
                               ]),
                             ),
                           ),

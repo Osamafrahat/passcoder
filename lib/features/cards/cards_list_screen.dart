@@ -30,11 +30,11 @@ class _CardsListScreenState extends State<CardsListScreen> {
   }
 
   void loadCards() async {
-    setState(() { _isLoading = true; _decryptedCards = []; });
+    setState(() { _isLoading = true; });
     try {
       final userId = _supabase.auth.currentUser?.id;
-      if (userId == null) return;
-      final data = await _supabase.from('cards').select('id,user_id,cardholder_name,card_number_encrypted,expiry_date_encrypted,cvv_encrypted,card_type,is_favorite,created_at,updated_at').eq('user_id', userId).order('created_at', ascending: false);
+      if (userId == null) { setState(() { _isLoading = false; }); return; }
+      final data = await _supabase.from('cards').select().eq('user_id', userId).order('created_at', ascending: false);
       final cards = data.map((e) => CardModel.fromJson(e)).where((c) => !c.isTrashed).toList();
       final decrypted = <Map<String, String>>[];
       for (final c in cards) {
@@ -118,7 +118,9 @@ class _CardsListScreenState extends State<CardsListScreen> {
                                 ),
                               );
                               if (confirm == true) {
-                                try { await _supabase.from('cards').update({'deleted_at': DateTime.now().toIso8601String()}).eq('id', c.id); } catch (_) { await _supabase.from('cards').delete().eq('id', c.id); }
+                                try { await _supabase.from('cards').update({'deleted_at': DateTime.now().toIso8601String()}).eq('id', c.id); } catch (_) {
+                                  try { await _supabase.from('cards').delete().eq('id', c.id); } catch (_) {}
+                                }
                                 loadCards();
                               }
                             },
