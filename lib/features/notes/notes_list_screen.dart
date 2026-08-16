@@ -27,7 +27,7 @@ class _NotesListScreenState extends State<NotesListScreen> {
     try {
       final userId = _supabase.auth.currentUser?.id;
       if (userId == null) return;
-      final data = await _supabase.from('notes').select().eq('user_id', userId).order('created_at', ascending: false);
+      final data = await _supabase.from('notes').select('id,user_id,title,content_encrypted,category,is_favorite,created_at,updated_at').eq('user_id', userId).order('created_at', ascending: false);
       final notes = data.map((e) => NoteModel.fromJson(e)).where((n) => !n.isTrashed).toList();
       final decrypted = <Map<String, String>>[];
       for (final n in notes) {
@@ -121,7 +121,11 @@ class _NotesListScreenState extends State<NotesListScreen> {
                                         PopupMenuItem(
                                           child: const Row(children: [Icon(Icons.delete_outline, size: 18, color: Colors.red), SizedBox(width: 8), Text('Delete', style: TextStyle(color: Colors.red))]),
                                           onTap: () async {
-                                            await _supabase.from('notes').update({'deleted_at': DateTime.now().toIso8601String()}).eq('id', n.id);
+                                            try {
+                                              await _supabase.from('notes').update({'deleted_at': DateTime.now().toIso8601String()}).eq('id', n.id);
+                                            } catch (_) {
+                                              await _supabase.from('notes').delete().eq('id', n.id);
+                                            }
                                             _loadNotes();
                                           },
                                         ),

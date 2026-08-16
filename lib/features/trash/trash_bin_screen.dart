@@ -23,15 +23,19 @@ class _TrashBinScreenState extends State<TrashBinScreen> {
     try {
       final userId = _supabase.auth.currentUser?.id;
       if (userId == null) return;
-      final passwords = await _supabase.from('passwords').select().eq('user_id', userId).not('deleted_at', 'is', null);
-      final notes = await _supabase.from('notes').select().eq('user_id', userId).not('deleted_at', 'is', null);
-      final cards = await _supabase.from('cards').select().eq('user_id', userId).not('deleted_at', 'is', null);
-      _trashItems = [
-        ...passwords.map((p) => {...p, 'type': 'password'}),
-        ...notes.map((n) => {...n, 'type': 'note'}),
-        ...cards.map((c) => {...c, 'type': 'card'}),
-      ];
-      _trashItems.sort((a, b) => DateTime.parse(b['deleted_at']).compareTo(DateTime.parse(a['deleted_at'])));
+      try {
+        final passwords = await _supabase.from('passwords').select('id,title,deleted_at').eq('user_id', userId).not('deleted_at', 'is', null);
+        final notes = await _supabase.from('notes').select('id,title,deleted_at').eq('user_id', userId).not('deleted_at', 'is', null);
+        final cards = await _supabase.from('cards').select('id,cardholder_name,deleted_at').eq('user_id', userId).not('deleted_at', 'is', null);
+        _trashItems = [
+          ...passwords.map((p) => {...p, 'type': 'password'}),
+          ...notes.map((n) => {...n, 'type': 'note'}),
+          ...cards.map((c) => {...c, 'type': 'card'}),
+        ];
+        _trashItems.sort((a, b) => DateTime.parse(b['deleted_at']).compareTo(DateTime.parse(a['deleted_at'])));
+      } catch (_) {
+        _trashItems = [];
+      }
     } catch (_) {}
     setState(() => _isLoading = false);
   }

@@ -13,9 +13,9 @@ class ExportImportService {
     final userId = _supabase.auth.currentUser?.id;
     if (userId == null) throw Exception('Not authenticated');
 
-    final passwordsData = await _supabase.from('passwords').select().eq('user_id', userId);
-    final notesData = await _supabase.from('notes').select().eq('user_id', userId);
-    final cardsData = await _supabase.from('cards').select().eq('user_id', userId);
+    final passwordsData = await _supabase.from('passwords').select('id,title,username,password_encrypted,url,notes,category,is_favorite,created_at').eq('user_id', userId);
+    final notesData = await _supabase.from('notes').select('id,title,content_encrypted,category,created_at').eq('user_id', userId);
+    final cardsData = await _supabase.from('cards').select('id,cardholder_name,card_number_encrypted,expiry_date_encrypted,cvv_encrypted,card_type,is_favorite,created_at').eq('user_id', userId);
 
     final passwords = <Map<String, dynamic>>[];
     for (final p in passwordsData) {

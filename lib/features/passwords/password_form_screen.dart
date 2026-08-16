@@ -73,19 +73,17 @@ class _PasswordFormScreenState extends State<PasswordFormScreen> {
       final userId = _supabase.auth.currentUser?.id;
       if (userId == null) return;
       final encrypted = await _encryptionService.encryptData(_passwordController.text);
-      String? encryptedTwoFactor;
-      if (_twoFactorController.text.trim().isNotEmpty) {
-        encryptedTwoFactor = await _encryptionService.encryptData(_twoFactorController.text.trim());
-      }
-      final tags = _tagsController.text.split(',').map((t) => t.trim()).where((t) => t.isNotEmpty).toList();
-      final data = {
+      final Map<String, dynamic> data = {
         'user_id': userId, 'title': _titleController.text, 'username': _usernameController.text,
         'password_encrypted': encrypted, 'category': _category,
         'url': _urlController.text.isEmpty ? null : _urlController.text,
         'notes': _notesController.text.isEmpty ? null : _notesController.text,
-        'tags': tags,
-        'two_factor_code': encryptedTwoFactor,
       };
+      final tags = _tagsController.text.split(',').map((t) => t.trim()).where((t) => t.isNotEmpty).toList();
+      if (tags.isNotEmpty) data['tags'] = tags;
+      if (_twoFactorController.text.trim().isNotEmpty) {
+        data['two_factor_code'] = await _encryptionService.encryptData(_twoFactorController.text.trim());
+      }
       if (widget.password != null) {
         await _supabase.from('passwords').update(data).eq('id', widget.password!.id);
       } else {

@@ -130,7 +130,11 @@ class _PasswordDetailScreenState extends State<PasswordDetailScreen> {
                         ),
                       );
                       if (confirm == true) {
-                        await Supabase.instance.client.from('passwords').update({'deleted_at': DateTime.now().toIso8601String()}).eq('id', p.id);
+                        try {
+                          await Supabase.instance.client.from('passwords').update({'deleted_at': DateTime.now().toIso8601String()}).eq('id', p.id);
+                        } catch (_) {
+                          await Supabase.instance.client.from('passwords').delete().eq('id', p.id);
+                        }
                   if (mounted) Navigator.pop(context);
                       }
                     },

@@ -36,29 +36,31 @@ class _PasswordListScreenState extends State<PasswordListScreen> {
     try {
       final userId = _supabase.auth.currentUser?.id;
       if (userId == null) return;
-      final data = await _supabase.from('passwords').select().eq('user_id', userId).order('created_at', ascending: false);
+      final data = await _supabase.from('passwords').select('id,user_id,title,username,password_encrypted,url,notes,category,is_favorite,created_at,updated_at').eq('user_id', userId).order('created_at', ascending: false);
       setState(() { _passwords = data.map((e) => PasswordModel.fromJson(e)).where((p) => !p.isTrashed).toList(); _isLoading = false; });
-    } catch (e) { setState(() => _isLoading = false); }
+    } catch (e) { debugPrint('Load passwords error: $e'); setState(() => _isLoading = false); }
   }
 
   Future<void> _toggleFavorite(PasswordModel p) async {
     try {
       await _supabase.from('passwords').update({'is_favorite': !p.isFavorite}).eq('id', p.id);
       _loadPasswords();
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('Toggle favorite error: $e');
+    }
   }
 
   Future<void> _softDelete(PasswordModel p) async {
     try {
       await _supabase.from('passwords').update({'deleted_at': DateTime.now().toIso8601String()}).eq('id', p.id);
       _loadPasswords();
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('"${p.title}" moved to trash'), action: SnackBarAction(label: 'Undo', onPressed: () async {
-          await _supabase.from('passwords').update({'deleted_at': null}).eq('id', p.id);
-          _loadPasswords();
-        })),
-      );
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('Soft delete error, falling back to hard delete: $e');
+      try {
+        await _supabase.from('passwords').delete().eq('id', p.id);
+        _loadPasswords();
+      } catch (_) {}
+    }
   }
 
   Future<void> _reorderPasswords(int oldIndex, int newIndex) async {

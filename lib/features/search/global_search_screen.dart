@@ -44,7 +44,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
 
       final results = <Map<String, dynamic>>[];
 
-      final passwordsData = await _supabase.from('passwords').select().eq('user_id', userId);
+      final passwordsData = await _supabase.from('passwords').select('id,user_id,title,username,password_encrypted,url,category,is_favorite,created_at,updated_at').eq('user_id', userId);
       for (final p in passwordsData) {
         final title = (p['title'] ?? '').toString().toLowerCase();
         final username = (p['username'] ?? '').toString().toLowerCase();
@@ -54,7 +54,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
         }
       }
 
-      final notesData = await _supabase.from('notes').select().eq('user_id', userId);
+      final notesData = await _supabase.from('notes').select('id,user_id,title,content_encrypted,category,created_at,updated_at').eq('user_id', userId);
       for (final n in notesData) {
         final title = (n['title'] ?? '').toString().toLowerCase();
         if (title.contains(query)) {
@@ -62,7 +62,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
         }
       }
 
-      final cardsData = await _supabase.from('cards').select().eq('user_id', userId);
+      final cardsData = await _supabase.from('cards').select('id,user_id,cardholder_name,card_number_encrypted,card_type,created_at,updated_at').eq('user_id', userId);
       for (final c in cardsData) {
         final name = (c['cardholder_name'] ?? '').toString().toLowerCase();
         final type = (c['card_type'] ?? '').toString().toLowerCase();
