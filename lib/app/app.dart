@@ -8,9 +8,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../features/auth/login_screen.dart';
 import '../features/passwords/password_list_screen.dart';
+import '../features/passwords/password_form_screen.dart';
 import '../features/notes/notes_list_screen.dart';
+import '../features/notes/note_form_screen.dart';
 import '../features/cards/cards_list_screen.dart';
+import '../features/cards/card_form_screen.dart';
 import '../features/generator/password_generator_screen.dart';
+import '../features/health/password_health_screen.dart';
+import '../features/settings/settings_screen.dart';
+import '../features/trash/trash_bin_screen.dart';
 import '../core/theme/theme_service.dart';
 import '../core/services/auto_lock_service.dart';
 
@@ -132,19 +138,12 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
 
     final hasSaved = await _hasSavedCredentials();
     final biometricsAvailable = await _isBiometricsAvailable();
-    final availableMethods = await _localAuth.getAvailableBiometrics();
-
-    debugPrint('=== BIOMETRIC DEBUG ===');
-    debugPrint('hasSavedCredentials: $hasSaved');
-    debugPrint('biometricsAvailable: $biometricsAvailable');
-    debugPrint('availableMethods: $availableMethods');
 
     if (hasSaved && biometricsAvailable) {
       _pendingBiometric = true;
       setState(() { _isLoading = false; });
       Future.delayed(const Duration(milliseconds: 500), _triggerBiometric);
     } else {
-      debugPrint('SKIPPING biometric - going to home directly');
       setState(() { _isLoading = false; _authenticated = true; });
     }
   }
@@ -153,7 +152,6 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     if (!_pendingBiometric || !mounted) return;
     _pendingBiometric = false;
     final success = await _authenticateWithBiometrics();
-    debugPrint('biometricResult: $success');
     if (success) {
       setState(() { _authenticated = true; });
       context.read<AutoLockService>().resetTimer();
@@ -165,12 +163,8 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   Future<bool> _hasSavedCredentials() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final hasSaved = prefs.getBool('has_saved_credentials') ?? false;
-      final email = prefs.getString('saved_email');
-      debugPrint('CREDENTIAL READ: hasSaved=$hasSaved, email=$email');
-      return hasSaved;
-    } catch (e) {
-      debugPrint('CREDENTIAL READ ERROR: $e');
+      return prefs.getBool('has_saved_credentials') ?? false;
+    } catch (_) {
       return false;
     }
   }
@@ -187,17 +181,11 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
 
   Future<bool> _authenticateWithBiometrics() async {
     try {
-      final result = await _localAuth.authenticate(
+      return await _localAuth.authenticate(
         localizedReason: 'Authenticate to access PassCoder',
-        options: const AuthenticationOptions(
-          stickyAuth: false,
-          biometricOnly: false,
-          useErrorDialogs: true,
-        ),
+        options: const AuthenticationOptions(stickyAuth: false, biometricOnly: false, useErrorDialogs: true),
       );
-      return result;
-    } catch (e) {
-      debugPrint('authenticate ERROR: $e');
+    } catch (_) {
       return false;
     }
   }
@@ -217,30 +205,14 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const CircularProgressIndicator(),
-              const SizedBox(height: 16),
-              const Text('Loading...'),
-            ],
-          ),
-        ),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-
     if (!_authenticated) {
       if (_biometricFailed) {
-        return _BiometricLockScreen(
-          onRetry: _retryBiometric,
-          onUsePassword: _usePassword,
-        );
+        return _BiometricLockScreen(onRetry: _retryBiometric, onUsePassword: _usePassword);
       }
       return const LoginScreen();
     }
-
     return const HomeScreen();
   }
 }
@@ -254,56 +226,44 @@ class _BiometricLockScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
     return Scaffold(
       body: Container(
         width: double.infinity,
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              theme.colorScheme.primary,
-              theme.colorScheme.primary.withValues(alpha: 0.7),
-              theme.colorScheme.secondary,
-            ],
+            begin: Alignment.topLeft, end: Alignment.bottomRight,
+            colors: [theme.colorScheme.primary, theme.colorScheme.primary.withValues(alpha: 0.7), theme.colorScheme.secondary],
           ),
         ),
         child: SafeArea(
           child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), shape: BoxShape.circle),
-                  child: const Icon(Icons.fingerprint, size: 72, color: Colors.white),
-                ),
-                const SizedBox(height: 28),
-                const Text('Authentication Required', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                Text('Use your fingerprint or PIN to continue', style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 15)),
-                const SizedBox(height: 48),
-                SizedBox(
-                  width: 220, height: 54,
-                  child: ElevatedButton.icon(
-                    onPressed: onRetry,
-                    icon: const Icon(Icons.fingerprint, size: 24),
-                    label: const Text('Try Again', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: theme.colorScheme.primary,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    ),
+            child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), shape: BoxShape.circle),
+                child: const Icon(Icons.fingerprint, size: 72, color: Colors.white),
+              ),
+              const SizedBox(height: 28),
+              const Text('Authentication Required', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Text('Use your fingerprint or PIN to continue', style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 15)),
+              const SizedBox(height: 48),
+              SizedBox(
+                width: 220, height: 54,
+                child: ElevatedButton.icon(
+                  onPressed: onRetry,
+                  icon: const Icon(Icons.fingerprint, size: 24),
+                  label: const Text('Try Again', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: theme.colorScheme.primary,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
                 ),
-                const SizedBox(height: 16),
-                TextButton(
-                  onPressed: onUsePassword,
-                  child: const Text('Use Password Instead', style: TextStyle(color: Colors.white70, fontSize: 14)),
-                ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 16),
+              TextButton(onPressed: onUsePassword, child: const Text('Use Password Instead', style: TextStyle(color: Colors.white70, fontSize: 14))),
+            ]),
           ),
         ),
       ),
@@ -319,6 +279,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
+  int _reloadTrigger = 0;
 
   final _titles = const ['Passwords', 'Notes', 'Cards', 'Generator'];
   final _icons = const [Icons.lock_outline, Icons.note_alt_outlined, Icons.credit_card_outlined, Icons.password_outlined];
@@ -355,43 +316,84 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  void _onFabPressed() {
+    Widget? form;
+    switch (_currentIndex) {
+      case 0: form = const PasswordFormScreen(); break;
+      case 1: form = const NoteFormScreen(); break;
+      case 2: form = const CardFormScreen(); break;
+    }
+    if (form != null) {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => form!)).then((_) {
+        setState(() => _reloadTrigger++);
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Column(
-      children: [
-        Expanded(
-          child: IndexedStack(
-            index: _currentIndex,
-            children: [
-              PasswordListScreen(onLogout: _onLogout),
-              NotesListScreen(onLogout: _onLogout),
-              CardsListScreen(onLogout: _onLogout),
-              PasswordGeneratorScreen(onLogout: _onLogout),
-            ],
-          ),
-        ),
-        Container(
-          decoration: BoxDecoration(
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 20, offset: const Offset(0, -5))],
-          ),
-          child: NavigationBar(
-            selectedIndex: _currentIndex,
-            onDestinationSelected: (i) => setState(() => _currentIndex = i),
-            backgroundColor: theme.colorScheme.surface,
-            elevation: 0,
-            labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-            height: 70,
-            indicatorColor: theme.colorScheme.primary.withValues(alpha: 0.12),
-            destinations: List.generate(4, (i) => NavigationDestination(
-              icon: Icon(_icons[i], color: theme.colorScheme.onSurfaceVariant),
-              selectedIcon: Icon(_selectedIcons[i], color: theme.colorScheme.primary),
-              label: _titles[i],
-            )),
-          ),
-        ),
-      ],
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(_titles[_currentIndex]),
+        actions: [
+          if (_currentIndex < 3)
+            PopupMenuButton(
+              icon: const Icon(Icons.more_vert),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              itemBuilder: (_) => [
+                if (_currentIndex == 0) ...[
+                  const PopupMenuItem(value: 'health', child: Row(children: [Icon(Icons.health_and_safety, size: 18), SizedBox(width: 8), Text('Password Health')])),
+                  const PopupMenuItem(value: 'trash', child: Row(children: [Icon(Icons.delete_outline, size: 18), SizedBox(width: 8), Text('Trash Bin')])),
+                ],
+                const PopupMenuItem(value: 'settings', child: Row(children: [Icon(Icons.settings, size: 18), SizedBox(width: 8), Text('Settings')])),
+                const PopupMenuItem(value: 'logout', child: Row(children: [Icon(Icons.logout, size: 18, color: Colors.red), SizedBox(width: 8), Text('Sign Out', style: TextStyle(color: Colors.red))])),
+              ],
+              onSelected: (v) {
+                if (v == 'logout') _onLogout();
+                else if (v == 'settings') Navigator.push(context, MaterialPageRoute(builder: (_) => SettingsScreen(
+                  themeService: context.read<ThemeService>(),
+                  autoLockService: context.read<AutoLockService>(),
+                )));
+                else if (v == 'health' || v == 'trash') Navigator.push(context, MaterialPageRoute(builder: (_) =>
+                  v == 'health' ? const PasswordHealthScreen() : const TrashBinScreen()));
+              },
+            ),
+        ],
+      ),
+      floatingActionButton: _currentIndex < 3
+          ? FloatingActionButton.extended(
+              heroTag: 'fab_main',
+              onPressed: _onFabPressed,
+              icon: const Icon(Icons.add),
+              label: Text('Add ${_titles[_currentIndex].substring(0, _titles[_currentIndex].length - 1)}'),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            )
+          : null,
+      body: IndexedStack(
+        index: _currentIndex,
+        children: [
+          PasswordListScreen(onLogout: _onLogout, reloadTrigger: _reloadTrigger),
+          NotesListScreen(onLogout: _onLogout, reloadTrigger: _reloadTrigger),
+          CardsListScreen(onLogout: _onLogout, reloadTrigger: _reloadTrigger),
+          const PasswordGeneratorScreen(),
+        ],
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _currentIndex,
+        onDestinationSelected: (i) => setState(() => _currentIndex = i),
+        backgroundColor: theme.colorScheme.surface,
+        elevation: 0,
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        height: 70,
+        indicatorColor: theme.colorScheme.primary.withValues(alpha: 0.12),
+        destinations: List.generate(4, (i) => NavigationDestination(
+          icon: Icon(_icons[i], color: theme.colorScheme.onSurfaceVariant),
+          selectedIcon: Icon(_selectedIcons[i], color: theme.colorScheme.primary),
+          label: _titles[i],
+        )),
+      ),
     );
   }
 }
